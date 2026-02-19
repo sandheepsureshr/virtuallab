@@ -1,0 +1,89 @@
+{% extends 'lab/base.html' %}
+{% block title %}My Profile{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <a href="{% url 'dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'subject_list' %}" class="sidebar-link"><span class="icon">📚</span> Courses</a>
+      <a href="{% url 'profile' %}" class="sidebar-link active"><span class="icon">👤</span> Profile</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">👤 My Profile</h1>
+        <p class="page-subtitle">Manage your account and learning preferences</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Stats Card -->
+      <div class="card">
+        <div style="text-align:center; margin-bottom:24px;">
+          <div style="width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; margin:0 auto 12px; color:white;">
+            {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+          </div>
+          <h2 style="font-size:20px; font-weight:700;">{{ request.user.get_full_name|default:request.user.username }}</h2>
+          <p class="text-muted text-sm">@{{ request.user.username }}</p>
+          {% if profile.institution %}
+          <p class="text-muted text-sm">🏫 {{ profile.institution }}</p>
+          {% endif %}
+          <p class="text-dim text-xs mt-1">Member since {{ profile.joined_at|date:"M Y" }}</p>
+        </div>
+
+        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <div style="text-align:center; padding:12px; background:var(--bg2); border-radius:var(--r2);">
+            <div style="font-size:22px; font-weight:800; color:var(--accent);">{{ profile.total_subjects }}</div>
+            <div class="text-muted text-xs">Courses</div>
+          </div>
+          <div style="text-align:center; padding:12px; background:var(--bg2); border-radius:var(--r2);">
+            <div style="font-size:22px; font-weight:800; color:var(--success);">{{ profile.total_quizzes }}</div>
+            <div class="text-muted text-xs">Quizzes</div>
+          </div>
+          <div style="text-align:center; padding:12px; background:var(--bg2); border-radius:var(--r2);">
+            <div style="font-size:22px; font-weight:800; color:var(--accent5);">{{ profile.overall_average }}%</div>
+            <div class="text-muted text-xs">Avg Score</div>
+          </div>
+          <div style="text-align:center; padding:12px; background:var(--bg2); border-radius:var(--r2);">
+            <div style="font-size:22px; font-weight:800; color:var(--accent2);">0</div>
+            <div class="text-muted text-xs">Certificates</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Form -->
+      <div class="card">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Edit Profile</h3>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <input type="text" name="first_name" class="form-control" value="{{ form.first_name.value|default:'' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <input type="text" name="last_name" class="form-control" value="{{ form.last_name.value|default:'' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ form.email.value|default:'' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Institution</label>
+            <input type="text" name="institution" class="form-control" value="{{ form.institution.value|default:'' }}" placeholder="Your school/university">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bio</label>
+            <textarea name="bio" class="form-control" rows="3" placeholder="Tell us about yourself...">{{ form.bio.value|default:'' }}</textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Update Profile</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

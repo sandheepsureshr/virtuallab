@@ -1,0 +1,83 @@
+{% extends 'lab/base.html' %}
+{% block title %}Announcements{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_students' %}" class="sidebar-link"><span class="icon">👥</span> Students</a>
+      <a href="{% url 'admin_analytics' %}" class="sidebar-link"><span class="icon">📊</span> Analytics</a>
+      <a href="{% url 'admin_announcements' %}" class="sidebar-link active"><span class="icon">📢</span> Announcements</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">📢 Announcements</h1>
+    </div>
+
+    <div class="grid-2" style="align-items:start;">
+      <!-- New Announcement Form -->
+      <div class="card">
+        <h3 style="font-size:17px; font-weight:700; margin-bottom:18px;">Post Announcement</h3>
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">Title *</label>
+            <input type="text" name="title" class="form-control" required placeholder="Announcement title">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message *</label>
+            <textarea name="content" class="form-control" rows="4" required placeholder="Write your announcement..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Subject (Optional)</label>
+            <select name="subject" class="form-control">
+              <option value="">All Students</option>
+              {% for subject in form.fields.subject.queryset %}
+              <option value="{{ subject.id }}">{{ subject.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" name="is_active" checked style="width:16px;height:16px;">
+              <span class="form-label" style="margin:0;">Active (visible to students)</span>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary w-full" style="width:100%; justify-content:center;">Post Announcement</button>
+        </form>
+      </div>
+
+      <!-- Existing Announcements -->
+      <div>
+        <div class="section-title">Previous Announcements</div>
+        {% for ann in announcements %}
+        <div class="card mb-2">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <h4 style="font-weight:700;">{{ ann.title }}</h4>
+                {% if ann.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-gray">Hidden</span>{% endif %}
+                {% if ann.subject %}<span class="badge badge-blue">{{ ann.subject.title }}</span>{% endif %}
+              </div>
+              <p style="font-size:14px; color:var(--text2);">{{ ann.content }}</p>
+              <p class="text-dim text-xs mt-1">{{ ann.created_at|date:"M d, Y" }} by {{ ann.created_by.username }}</p>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+          <div class="empty-icon">📢</div>
+          <h3 class="empty-title">No announcements yet</h3>
+          <p class="empty-desc">Post your first announcement to notify students.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

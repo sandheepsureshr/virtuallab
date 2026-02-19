@@ -1,0 +1,88 @@
+{% extends 'lab/base.html' %}
+{% block title %}{{ action }} Subject{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link active"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_students' %}" class="sidebar-link"><span class="icon">👥</span> Students</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_subjects' %}">Subjects</a>
+      <span>›</span>
+      <span>{{ action }} Subject</span>
+    </div>
+    <div class="page-header">
+      <h1 class="page-title">{{ action }} Subject</h1>
+      <a href="{% url 'admin_subjects' %}" class="btn btn-secondary">← Back</a>
+    </div>
+
+    <div class="card" style="max-width:700px;">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Title *</label>
+          <input type="text" name="title" class="form-control" value="{{ form.title.value|default:'' }}" placeholder="e.g. Python Programming" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description *</label>
+          <textarea name="description" class="form-control" rows="4" placeholder="Describe this subject...">{{ form.description.value|default:'' }}</textarea>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-control">
+              {% for val, label in form.fields.category.choices %}
+              <option value="{{ val }}" {% if form.category.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icon Name</label>
+            <select name="icon" class="form-control">
+              <option value="database" {% if form.icon.value == 'database' %}selected{% endif %}>🗄️ Database</option>
+              <option value="code" {% if form.icon.value == 'code' %}selected{% endif %}>💻 Code</option>
+              <option value="cpu" {% if form.icon.value == 'cpu' %}selected{% endif %}>⚙️ CPU/Algorithms</option>
+              <option value="network" {% if form.icon.value == 'network' %}selected{% endif %}>🌐 Network</option>
+              <option value="other" {% if form.icon.value == 'other' or not form.icon.value %}selected{% endif %}>📚 Book</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Color</label>
+            <input type="color" name="color" class="form-control" value="{{ form.color.value|default:'#4f46e5' }}" style="height:44px; padding:4px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Order</label>
+            <input type="number" name="order" class="form-control" value="{{ form.order.value|default:0 }}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Thumbnail Image (Optional)</label>
+          <input type="file" name="thumbnail" class="form-control" accept="image/*">
+          {% if subject and subject.thumbnail %}
+          <p class="form-help">Current: {{ subject.thumbnail.name }}</p>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" name="is_active" {% if form.is_active.value %}checked{% endif %} style="width:16px;height:16px;">
+            <span class="form-label" style="margin:0;">Active (visible to students)</span>
+          </label>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="btn btn-primary">{{ action }} Subject</button>
+          <a href="{% url 'admin_subjects' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

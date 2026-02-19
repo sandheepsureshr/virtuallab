@@ -1,0 +1,123 @@
+{% extends 'lab/base.html' %}
+{% block title %}Quiz: {{ chapter.title }}{% endblock %}
+
+{% block body %}
+<style>
+  .quiz-page { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+  .quiz-header { text-align: center; margin-bottom: 36px; }
+  .quiz-timer {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 99px;
+    padding: 8px 20px; font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 700;
+    color: var(--accent); margin-bottom: 24px;
+  }
+  .question-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; margin-bottom: 24px; }
+  .question-number { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .question-text { font-size: 16px; font-weight: 600; margin-bottom: 18px; line-height: 1.5; }
+  .submit-bar {
+    position: sticky; bottom: 0;
+    background: rgba(10,14,26,0.95); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border); padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+</style>
+
+<div class="quiz-page">
+  <div class="quiz-header fade-up">
+    <a href="{% url 'chapter_detail' chapter.id %}" class="text-muted text-sm" style="text-decoration:none;">← Back to Chapter</a>
+    <h1 style="font-size:28px; font-weight:800; margin:12px 0 4px;">📝 Chapter Quiz</h1>
+    <p style="color:var(--text2);">{{ chapter.title }} · {{ chapter.subject.title }}</p>
+    <div class="quiz-timer" id="timer">⏱ <span id="timer-display">00:00</span></div>
+    <div class="flex items-center justify-center gap-2 text-muted text-sm">
+      <span>{{ questions|length }} questions</span>
+      <span>·</span>
+      <span>Min 60% to pass</span>
+    </div>
+  </div>
+
+  {% if existing_result %}
+  <div class="alert alert-info mb-3">
+    <div>
+      <strong>Previous attempt:</strong> {{ existing_result.percentage }}%
+      {% if existing_result.passed %} ✅ Passed{% else %} ❌ Failed — Try again!{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'submit_quiz' chapter.id %}" id="quizForm">
+    {% csrf_token %}
+    <input type="hidden" name="time_taken" id="time_taken" value="0">
+
+    {% for question in questions %}
+    <div class="question-card fade-up" style="animation-delay: {{ forloop.counter0 }}00ms">
+      <div class="question-number">Question {{ forloop.counter }} of {{ questions|length }} · {{ question.marks }} mark{{ question.marks|pluralize }}</div>
+      <div class="question-text">{{ question.question_text }}</div>
+
+      <div>
+        {% for opt_val, opt_label in question.get_options %}
+        <label class="quiz-option" onclick="selectOption(this)">
+          <input type="radio" name="q_{{ question.id }}" value="{{ opt_val }}" required>
+          <div class="option-letter">{{ opt_val }}</div>
+          <span>{{ opt_label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div style="height:80px;"></div><!-- spacer for sticky bar -->
+
+    <div class="submit-bar">
+      <div>
+        <span id="answered-count" class="font-bold">0</span> / {{ questions|length }} answered
+        <div class="progress-bar" style="width:200px; margin-top:4px;">
+          <div class="progress-fill" id="answer-progress" style="width:0%"></div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-gradient btn-lg" id="submitBtn">
+        Submit Quiz →
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Timer
+  let seconds = 0;
+  const timerEl = document.getElementById('timer-display');
+  const timeInput = document.getElementById('time_taken');
+  const interval = setInterval(() => {
+    seconds++;
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    timerEl.textContent = `${m}:${s}`;
+    timeInput.value = seconds;
+  }, 1000);
+
+  // Quiz option selection
+  function selectOption(label) {
+    const name = label.querySelector('input').name;
+    document.querySelectorAll(`input[name="${name}"]`).forEach(inp => {
+      inp.closest('.quiz-option').classList.remove('selected');
+    });
+    label.classList.add('selected');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const total = {{ questions|length }};
+    const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+    document.getElementById('answered-count').textContent = answered;
+    document.getElementById('answer-progress').style.width = `${(answered/total)*100}%`;
+  }
+
+  // Submit handler
+  document.getElementById('quizForm').addEventListener('submit', () => {
+    clearInterval(interval);
+    document.getElementById('submitBtn').textContent = 'Submitting...';
+    document.getElementById('submitBtn').disabled = true;
+  });
+</script>
+{% endblock %}

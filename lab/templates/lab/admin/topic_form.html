@@ -1,0 +1,152 @@
+{% extends 'lab/base.html' %}
+{% block title %}{{ action }} Topic{% endblock %}
+
+{% block body %}
+<style>
+  .editor-toolbar {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    padding: 8px; background: var(--bg); border: 1px solid var(--border2); border-bottom: none;
+    border-radius: var(--r2) var(--r2) 0 0;
+  }
+  .toolbar-btn {
+    padding: 4px 10px; background: var(--card); border: 1px solid var(--border2);
+    border-radius: 4px; color: var(--text); cursor: pointer; font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .toolbar-btn:hover { background: var(--border2); }
+  #content-editor {
+    border-radius: 0 0 var(--r2) var(--r2) !important;
+    min-height: 300px; font-family: 'DM Mono', monospace; font-size: 13px;
+  }
+</style>
+
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_chapters' chapter.subject.id %}" class="sidebar-link"><span class="icon">📖</span> {{ chapter.subject.title }}</a>
+      <a href="{% url 'admin_topics' chapter.id %}" class="sidebar-link active"><span class="icon">📄</span> Topics</a>
+      <a href="{% url 'admin_quiz' chapter.id %}" class="sidebar-link"><span class="icon">📝</span> Quiz</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_chapters' chapter.subject.id %}">{{ chapter.subject.title }}</a>
+      <span>›</span>
+      <a href="{% url 'admin_topics' chapter.id %}">{{ chapter.title }}</a>
+      <span>›</span>
+      <span>{{ action }} Topic</span>
+    </div>
+    <div class="page-header">
+      <h1 class="page-title">{{ action }} Topic</h1>
+      <a href="{% url 'admin_topics' chapter.id %}" class="btn btn-secondary">← Back</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="grid-2" style="align-items:start;">
+        <div>
+          <div class="card mb-2">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;">Basic Info</h3>
+            <div class="form-group">
+              <label class="form-label">Topic Title *</label>
+              <input type="text" name="title" class="form-control" value="{{ form.title.value|default:'' }}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Order</label>
+              <input type="number" name="order" class="form-control" value="{{ form.order.value|default:0 }}">
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="is_active" {% if form.is_active.value %}checked{% endif %} style="width:16px;height:16px;">
+                <span class="form-label" style="margin:0;">Active</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;">🎥 Video</h3>
+            <div class="form-group">
+              <label class="form-label">Video URL (YouTube embed or direct link)</label>
+              <input type="url" name="video_url" class="form-control" value="{{ form.video_url.value|default:'' }}"
+                     placeholder="https://www.youtube.com/embed/VIDEO_ID">
+              <p class="form-help">Use YouTube embed URL format: https://www.youtube.com/embed/VIDEO_ID</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Or Upload Video File</label>
+              <input type="file" name="video_file" class="form-control" accept="video/*">
+              {% if topic and topic.video_file %}
+              <p class="form-help">Current: {{ topic.video_file.name }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;">📖 Study Notes (HTML)</h3>
+            <div class="editor-toolbar">
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;h2&gt;', '&lt;/h2&gt;')">H2</button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;h3&gt;', '&lt;/h3&gt;')">H3</button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;p&gt;', '&lt;/p&gt;')">P</button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;strong&gt;', '&lt;/strong&gt;')"><b>B</b></button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;code&gt;', '&lt;/code&gt;')">code</button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;pre&gt;&lt;code&gt;', '&lt;/code&gt;&lt;/pre&gt;')">pre</button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;ul&gt;\n  &lt;li&gt;', '&lt;/li&gt;\n&lt;/ul&gt;')">UL</button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;ol&gt;\n  &lt;li&gt;', '&lt;/li&gt;\n&lt;/ol&gt;')">OL</button>
+              <button type="button" class="toolbar-btn" onclick="ins('&lt;blockquote&gt;', '&lt;/blockquote&gt;')">Quote</button>
+              <button type="button" class="toolbar-btn" onclick="insertTemplate()">📋 Template</button>
+            </div>
+            <textarea name="content" id="content-editor" class="form-control" rows="20">{{ form.content.value|default:'' }}</textarea>
+            <p class="form-help">HTML is supported. Use the buttons above to insert common tags.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary">{{ action }} Topic</button>
+        <a href="{% url 'admin_topics' chapter.id %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+function ins(before, after) {
+  const ta = document.getElementById('content-editor');
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const sel = ta.value.substring(start, end);
+  ta.value = ta.value.substring(0, start) + before + sel + after + ta.value.substring(end);
+  ta.focus();
+}
+
+function insertTemplate() {
+  document.getElementById('content-editor').value = `<h2>Introduction</h2>
+<p>Welcome to this topic. In this lesson, we will cover...</p>
+
+<h3>Key Concepts</h3>
+<ul>
+  <li>Concept 1: Description</li>
+  <li>Concept 2: Description</li>
+  <li>Concept 3: Description</li>
+</ul>
+
+<h3>Example Code</h3>
+<pre><code>
+# Example code here
+def example():
+    pass
+</code></pre>
+
+<blockquote>
+  Important note or key takeaway for students.
+</blockquote>
+
+<h3>Summary</h3>
+<p>In this topic, we learned about...</p>`;
+}
+</script>
+{% endblock %}
+{% endblock %}

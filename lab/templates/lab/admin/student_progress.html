@@ -1,0 +1,81 @@
+{% extends 'lab/base.html' %}
+{% block title %}Student Progress{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'admin_students' %}" class="sidebar-link active"><span class="icon">👥</span> Students</a>
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_students' %}">Students</a>
+      <span>›</span>
+      <span>{{ student.get_full_name|default:student.username }}</span>
+    </div>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">{{ student.get_full_name|default:student.username }}</h1>
+        <p class="page-subtitle">@{{ student.username }} · {{ student.email }}</p>
+      </div>
+      <a href="{% url 'admin_students' %}" class="btn btn-secondary">← Back</a>
+    </div>
+
+    <!-- Enrollments -->
+    <div class="section-title">📚 Course Enrollments</div>
+    {% for enrollment in enrollments %}
+    <div class="card mb-2">
+      <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <div>
+          <h3 style="font-size:17px; font-weight:700;">{{ enrollment.subject.title }}</h3>
+          <p class="text-muted text-sm">Enrolled {{ enrollment.enrolled_at|date:"M d, Y" }}</p>
+        </div>
+        <div class="text-right">
+          <div style="font-size:24px; font-weight:800; color:var(--accent);">{{ enrollment.progress_percent }}%</div>
+          <div class="text-dim text-xs">{{ enrollment.completed_chapters }}/{{ enrollment.subject.total_chapters }} chapters</div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ enrollment.progress_percent }}%"></div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="empty-state"><div class="empty-icon">📚</div><h3 class="empty-title">No enrollments</h3></div>
+    {% endfor %}
+
+    <!-- Quiz Results -->
+    <div class="section-title mt-3">📝 Quiz History</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Chapter</th><th>Subject</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for result in results %}
+          <tr>
+            <td style="font-weight:500;">{{ result.chapter.title }}</td>
+            <td class="text-muted">{{ result.chapter.subject.title }}</td>
+            <td>
+              <span style="font-weight:700; color:{% if result.passed %}var(--success){% else %}var(--danger){% endif %}">
+                {{ result.percentage }}% ({{ result.score }}/{{ result.total_marks }})
+              </span>
+            </td>
+            <td>
+              {% if result.passed %}<span class="badge badge-green">Passed</span>
+              {% else %}<span class="badge badge-red">Failed</span>{% endif %}
+            </td>
+            <td class="text-dim text-xs">{{ result.attempted_at|date:"M d, Y H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-dim text-center" style="padding:30px;">No quiz attempts yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

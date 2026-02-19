@@ -1,0 +1,68 @@
+{% extends 'lab/base.html' %}
+{% block title %}All Courses{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <a href="{% url 'dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'subject_list' %}" class="sidebar-link active"><span class="icon">📚</span> All Courses</a>
+      <a href="{% url 'profile' %}" class="sidebar-link"><span class="icon">👤</span> Profile</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Filter by Category</div>
+      <a href="?cat=" class="sidebar-link {% if not request.GET.cat %}active{% endif %}"><span class="icon">🌐</span> All Categories</a>
+      <a href="?cat=programming" class="sidebar-link"><span class="icon">💻</span> Programming</a>
+      <a href="?cat=database" class="sidebar-link"><span class="icon">🗄️</span> Database</a>
+      <a href="?cat=algorithms" class="sidebar-link"><span class="icon">⚙️</span> Algorithms</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">📚 Browse Courses</h1>
+        <p class="page-subtitle">{{ subjects|length }} courses available</p>
+      </div>
+    </div>
+
+    {% if subjects %}
+    <div class="grid-auto">
+      {% for subject in subjects %}
+      <div class="subject-card" style="text-decoration:none; display:block;">
+        <div class="subject-card-header" style="background: linear-gradient(135deg, {{ subject.color }}33, {{ subject.color }}66);">
+          <span style="font-size:42px;">
+            {% if subject.icon == 'database' %}🗄️{% elif subject.icon == 'code' %}💻{% elif subject.icon == 'cpu' %}⚙️{% elif subject.icon == 'network' %}🌐{% else %}📚{% endif %}
+          </span>
+          {% if subject.id in enrolled_ids %}
+            <span class="badge badge-green" style="position:absolute; top:12px; right:12px;">✓ Enrolled</span>
+          {% endif %}
+        </div>
+        <div class="subject-card-body">
+          <div class="flex items-center justify-between mb-1">
+            <span class="badge badge-purple">{{ subject.category }}</span>
+          </div>
+          <h3 class="subject-card-title">{{ subject.title }}</h3>
+          <p class="subject-card-desc">{{ subject.description|truncatechars:100 }}</p>
+          <div class="subject-card-meta mb-2">
+            <span>📖 {{ subject.total_chapters }} chapters</span>
+            <span>👥 {{ subject.enrolled_count }} enrolled</span>
+          </div>
+          <a href="{% url 'subject_detail' subject.id %}" class="btn btn-primary btn-sm w-full" style="width:100%; justify-content:center;">
+            {% if subject.id in enrolled_ids %}Continue Learning{% else %}View Course{% endif %}
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📚</div>
+      <h3 class="empty-title">No courses available</h3>
+      <p class="empty-desc">New courses are being added. Check back soon!</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

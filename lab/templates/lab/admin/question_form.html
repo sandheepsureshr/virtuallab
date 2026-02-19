@@ -1,0 +1,90 @@
+{% extends 'lab/base.html' %}
+{% block title %}{{ action }} Question{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <a href="{% url 'admin_chapters' chapter.subject.id %}" class="sidebar-link"><span class="icon">📖</span> Chapters</a>
+      <a href="{% url 'admin_topics' chapter.id %}" class="sidebar-link"><span class="icon">📄</span> Topics</a>
+      <a href="{% url 'admin_quiz' chapter.id %}" class="sidebar-link active"><span class="icon">📝</span> Quiz</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_quiz' chapter.id %}">Quiz</a>
+      <span>›</span>
+      <span>{{ action }} Question</span>
+    </div>
+    <div class="page-header">
+      <h1 class="page-title">{{ action }} Question</h1>
+      <a href="{% url 'admin_quiz' chapter.id %}" class="btn btn-secondary">← Back to Quiz</a>
+    </div>
+
+    <div class="card" style="max-width:700px;">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Question Text *</label>
+          <textarea name="question_text" class="form-control" rows="3" required>{{ form.question_text.value|default:'' }}</textarea>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Question Type</label>
+            <select name="question_type" class="form-control">
+              <option value="mcq" {% if form.question_type.value == 'mcq' %}selected{% endif %}>Multiple Choice</option>
+              <option value="truefalse" {% if form.question_type.value == 'truefalse' %}selected{% endif %}>True/False</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correct Answer</label>
+            <select name="correct_answer" class="form-control">
+              <option value="A" {% if form.correct_answer.value == 'A' %}selected{% endif %}>A</option>
+              <option value="B" {% if form.correct_answer.value == 'B' %}selected{% endif %}>B</option>
+              <option value="C" {% if form.correct_answer.value == 'C' %}selected{% endif %}>C</option>
+              <option value="D" {% if form.correct_answer.value == 'D' %}selected{% endif %}>D</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Option A *</label>
+            <input type="text" name="option_a" class="form-control" value="{{ form.option_a.value|default:'' }}" required placeholder="First option">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option B *</label>
+            <input type="text" name="option_b" class="form-control" value="{{ form.option_b.value|default:'' }}" required placeholder="Second option">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option C (Optional)</label>
+            <input type="text" name="option_c" class="form-control" value="{{ form.option_c.value|default:'' }}" placeholder="Third option">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option D (Optional)</label>
+            <input type="text" name="option_d" class="form-control" value="{{ form.option_d.value|default:'' }}" placeholder="Fourth option">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Marks</label>
+            <input type="number" name="marks" class="form-control" value="{{ form.marks.value|default:1 }}" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Order</label>
+            <input type="number" name="order" class="form-control" value="{{ form.order.value|default:0 }}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Explanation (shown after quiz)</label>
+          <textarea name="explanation" class="form-control" rows="2" placeholder="Explain why the answer is correct...">{{ form.explanation.value|default:'' }}</textarea>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="btn btn-primary">{{ action }} Question</button>
+          <a href="{% url 'admin_quiz' chapter.id %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

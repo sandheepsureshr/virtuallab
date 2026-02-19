@@ -1,0 +1,60 @@
+# ⚠️ FIX: If you see the Django Welcome Page
+# =============================================
+# This means you're running the server from the WRONG directory.
+# The manage.py file must be in the SAME folder where you run commands.
+
+# ─── CORRECT SETUP STEPS ──────────────────────────────────────────────────────
+
+# STEP 1: Unzip and navigate INTO the project folder
+unzip VirtualLab_Django_Project.zip
+cd virtuallab_project               # <-- make sure you're IN this folder
+ls                                  # You should see: manage.py, lab/, virtuallab/, etc.
+
+# STEP 2: Create and activate virtual environment
+python -m venv venv
+
+# On Linux/Mac:
+source venv/bin/activate
+
+# On Windows:
+venv\Scripts\activate
+
+# STEP 3: Install Django
+pip install -r requirements.txt
+
+# STEP 4: Run migrations (creates the database)
+python manage.py makemigrations
+python manage.py migrate
+
+# STEP 5: Load demo data
+python manage.py seed_data
+
+# STEP 6: Start the server
+python manage.py runserver
+
+# STEP 7: Open in browser
+# http://127.0.0.1:8000/
+#
+# Login credentials:
+#   Admin:   http://127.0.0.1:8000/admin-panel/   → admin / admin123
+#   Student: http://127.0.0.1:8000/               → student1 / student123
+
+# ─── COMMON MISTAKES ──────────────────────────────────────────────────────────
+
+# ❌ WRONG - running from outside the project folder:
+#   cd Downloads
+#   python virtuallab_project/manage.py runserver   ← This breaks URL routing
+
+# ✅ CORRECT - always CD into the folder first:
+#   cd Downloads/virtuallab_project
+#   python manage.py runserver
+
+# ─── IF MANAGE.PY SAYS "No module named lab" ──────────────────────────────────
+# You are in the wrong directory. Run:
+#   ls      <- check if you see manage.py here
+#   cd virtuallab_project
+#   python manage.py runserver
+
+# ─── IF PORT 8000 IS BUSY ─────────────────────────────────────────────────────
+# python manage.py runserver 8080
+# Then open: http://127.0.0.1:8080/

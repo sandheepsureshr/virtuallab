@@ -1,0 +1,76 @@
+{% extends 'lab/base.html' %}
+{% block title %}Register{% endblock %}
+
+{% block body %}
+<style>
+  .auth-page {
+    min-height: calc(100vh - 64px);
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(79,122,255,0.08), transparent 60%);
+    padding: 40px 20px;
+  }
+  .auth-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px; width: 100%; max-width: 480px;
+    box-shadow: var(--shadow);
+  }
+</style>
+
+<div class="auth-page">
+  <div class="auth-card fade-up">
+    <!-- <div style="font-size:36px; margin-bottom:8px;">🚀</div> -->
+    <h1 style="font-size:26px; font-weight:800; margin-bottom:4px;">Create Account</h1>
+    <p style="color:var(--text2); font-size:14px; margin-bottom:28px;">Join VirtualLab and start learning today</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" name="first_name" class="form-control" placeholder="First" value="{{ form.first_name.value|default:'' }}" required>
+          {% if form.first_name.errors %}<p class="form-error">{{ form.first_name.errors|join:', ' }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" name="last_name" class="form-control" placeholder="Last" value="{{ form.last_name.value|default:'' }}" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control" placeholder="Choose a username" value="{{ form.username.value|default:'' }}" required>
+        {% if form.username.errors %}<p class="form-error">{{ form.username.errors|join:', ' }}</p>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" placeholder="your@email.com" value="{{ form.email.value|default:'' }}" required>
+        {% if form.email.errors %}<p class="form-error">{{ form.email.errors|join:', ' }}</p>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Institution (Optional)</label>
+        <input type="text" name="institution" class="form-control" placeholder="Your school or university">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password1" class="form-control" placeholder="Create a strong password" required>
+        {% if form.password1.errors %}<p class="form-error">{{ form.password1.errors|join:', ' }}</p>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <input type="password" name="password2" class="form-control" placeholder="Repeat your password" required>
+        {% if form.password2.errors %}<p class="form-error">{{ form.password2.errors|join:', ' }}</p>{% endif %}
+      </div>
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">{{ form.non_field_errors|join:' ' }}</div>
+      {% endif %}
+      <button type="submit" class="btn btn-gradient" style="width:100%; justify-content:center; padding:12px;">
+        Create Account 🚀
+      </button>
+    </form>
+
+    <hr class="divider">
+    <p style="text-align:center; font-size:14px; color:var(--text2);">
+      Already have an account? <a href="{% url 'login' %}" style="color:var(--accent);">Login here</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

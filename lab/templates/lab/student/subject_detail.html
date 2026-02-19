@@ -1,0 +1,152 @@
+{% extends 'lab/base.html' %}
+{% block title %}{{ subject.title }}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <a href="{% url 'dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'subject_list' %}" class="sidebar-link"><span class="icon">📚</span> All Courses</a>
+    </div>
+    {% if enrollment %}
+    <div class="sidebar-section">
+      <div class="sidebar-label">Course Progress</div>
+      <div style="padding:12px; background:var(--card); border-radius:var(--r2); border:1px solid var(--border);">
+        <div class="flex justify-between text-xs text-muted mb-1">
+          <span>Overall Progress</span>
+          <span style="font-weight:700; color:var(--accent);">{{ enrollment.progress_percent }}%</span>
+        </div>
+        <div class="progress-bar" style="margin-bottom:8px;">
+          <div class="progress-fill" style="width:{{ enrollment.progress_percent }}%"></div>
+        </div>
+        <p class="text-xs text-dim">{{ enrollment.completed_chapters }}/{{ subject.total_chapters }} chapters done</p>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Chapters</div>
+      {% for item in chapter_data %}
+        {% if item.is_unlocked %}
+        <a href="{% url 'chapter_detail' item.chapter.id %}" class="sidebar-link">
+          <span style="font-size:11px; font-weight:700; opacity:0.5;">{{ item.index }}.</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">{{ item.chapter.title }}</span>
+          {% if item.progress and item.progress.is_completed %}✅{% elif item.quiz_result %}📝{% endif %}
+        </a>
+        {% else %}
+        <div class="sidebar-link" style="opacity:0.4; cursor:not-allowed;">
+          <span class="icon">🔒</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.chapter.title }}</span>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'subject_list' %}">Courses</a>
+      <span>›</span>
+      <span>{{ subject.title }}</span>
+    </div>
+
+    <!-- Subject Header -->
+    <div class="card mb-3" style="background: linear-gradient(135deg, {{ subject.color }}15, var(--card));">
+      <div class="flex items-start gap-3 flex-wrap">
+        <div style="width:64px; height:64px; border-radius:14px; background:{{ subject.color }}22; display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; border:2px solid {{ subject.color }}44;">
+          {% if subject.icon == 'database' %}🗄️{% elif subject.icon == 'code' %}💻{% elif subject.icon == 'cpu' %}⚙️{% elif subject.icon == 'network' %}🌐{% else %}📚{% endif %}
+        </div>
+        <div style="flex:1;">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <h1 style="font-size:26px; font-weight:800;">{{ subject.title }}</h1>
+            <span class="badge badge-purple">{{ subject.category }}</span>
+            {% if enrollment %}<span class="badge badge-green">✓ Enrolled</span>{% endif %}
+          </div>
+          <p style="color:var(--text2); margin-bottom:16px;">{{ subject.description }}</p>
+          <div class="flex items-center gap-3 flex-wrap text-sm text-muted">
+            <span>📖 {{ subject.total_chapters }} chapters</span>
+            <span>👥 {{ subject.enrolled_count }} students</span>
+            {% if enrollment %}<span>🏆 Avg score: {{ enrollment.average_score }}%</span>{% endif %}
+          </div>
+        </div>
+        <div>
+          {% if not enrollment %}
+          <form method="post" action="{% url 'enroll_subject' subject.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-gradient btn-lg">🚀 Enroll Now</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Chapter List -->
+    <div class="section-title">📑 Course Chapters</div>
+
+    {% if not enrollment %}
+    <div class="alert alert-info">
+      Enroll in this course to access chapters and track your progress.
+    </div>
+    {% endif %}
+
+    {% for item in chapter_data %}
+    <div class="chapter-card {% if not item.is_unlocked %}locked{% endif %}"
+         {% if item.is_unlocked %}onclick="location.href='{% url 'chapter_detail' item.chapter.id %}'"{% endif %}
+         style="cursor:{% if item.is_unlocked %}pointer{% else %}not-allowed{% endif %}; margin-bottom:12px;">
+      <!-- Chapter Number -->
+      <div class="chapter-num {% if item.progress and item.progress.is_completed %}completed{% elif item.quiz_result %}active{% endif %}">
+        {% if item.progress and item.progress.is_completed %}✓
+        {% elif not item.is_unlocked %}🔒
+        {% else %}{{ item.index }}{% endif %}
+      </div>
+
+      <!-- Info -->
+      <div style="flex:1; min-width:0;">
+        <div class="flex items-center gap-2 mb-1 flex-wrap">
+          <h3 style="font-size:16px; font-weight:700;">{{ item.chapter.title }}</h3>
+          {% if item.progress and item.progress.is_completed %}
+            <span class="badge badge-green text-xs">Completed</span>
+          {% elif not item.is_unlocked %}
+            <span class="badge badge-gray text-xs">Locked</span>
+          {% endif %}
+        </div>
+        {% if item.chapter.description %}
+          <p style="font-size:13px; color:var(--text2);">{{ item.chapter.description }}</p>
+        {% endif %}
+        <div class="flex items-center gap-3 mt-1 text-xs text-dim">
+          <span>📄 {{ item.chapter.topics.count }} topics</span>
+          {% if item.chapter.has_quiz %}<span>📝 Quiz included</span>{% endif %}
+          {% if item.quiz_result %}
+            <span style="color:{% if item.quiz_result.passed %}var(--success){% else %}var(--danger){% endif %}; font-weight:600;">
+              Quiz: {{ item.quiz_result.percentage }}%
+            </span>
+          {% endif %}
+        </div>
+        {% if item.progress %}
+        <div style="margin-top:8px;">
+          <div class="progress-bar" style="height:4px; max-width:200px;">
+            <div class="progress-fill" style="width:{% widthratio item.progress.topics_viewed_count item.progress.topics_total 100 %}%"></div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Action -->
+      {% if item.is_unlocked %}
+      <div>
+        <a href="{% url 'chapter_detail' item.chapter.id %}" class="btn btn-primary btn-sm" onclick="event.stopPropagation();">
+          {% if item.progress and item.progress.is_completed %}Review{% elif item.progress %}Continue{% else %}Start{% endif %} →
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="empty-state">
+      <div class="empty-icon">📖</div>
+      <h3 class="empty-title">No chapters yet</h3>
+      <p class="empty-desc">This course is being prepared. Check back soon!</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

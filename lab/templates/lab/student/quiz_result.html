@@ -1,0 +1,116 @@
+{% extends 'lab/base.html' %}
+{% block title %}Quiz Result{% endblock %}
+
+{% block body %}
+<style>
+  .result-page { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+  .score-circle {
+    width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 6px solid;
+    {% if result.passed %}border-color: var(--success); background: rgba(0,200,122,0.1);{% else %}border-color: var(--danger); background: rgba(255,82,82,0.1);{% endif %}
+  }
+  .score-pct { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; }
+  .answer-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+  .answer-card.correct { border-left: 4px solid var(--success); }
+  .answer-card.wrong { border-left: 4px solid var(--danger); }
+</style>
+
+<div class="result-page">
+  <!-- Result Header -->
+  <div class="text-center mb-3 fade-up">
+    <div class="score-circle">
+      <span class="score-pct" style="color:{% if result.passed %}var(--success){% else %}var(--danger){% endif %}">
+        {{ result.percentage }}%
+      </span>
+      <span style="font-size:13px; color:var(--text2);">{{ result.score }}/{{ result.total_marks }}</span>
+    </div>
+    <h1 style="font-size:28px; font-weight:800; margin-bottom:8px;">
+      {% if result.passed %}🎉 Congratulations!{% else %}😔 Not Quite{% endif %}
+    </h1>
+    <p style="color:var(--text2);">
+      {% if result.passed %}You passed the quiz and unlocked the next chapter!
+      {% else %}You need 60% to pass. Review the material and try again.{% endif %}
+    </p>
+
+    <div class="flex items-center justify-center gap-3 mt-2 flex-wrap">
+      <span class="badge {% if result.passed %}badge-green{% else %}badge-red{% endif %}" style="font-size:14px; padding:6px 16px;">
+        {% if result.passed %}✓ Passed{% else %}✗ Failed{% endif %}
+      </span>
+      {% if result.time_taken_seconds > 0 %}
+      <span class="badge badge-blue">⏱ {{ result.time_taken_seconds }}s</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-grid mb-3 fade-up fade-up-1">
+    <div class="stat-card">
+      <div class="stat-icon green">✅</div>
+      <div>
+        <div class="stat-value">{{ question_results|length }}</div>
+        <div class="stat-label">Total Questions</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">🎯</div>
+      <div>
+        <div class="stat-value">{% for q in question_results %}{% if q.is_correct %}{% endif %}{% endfor %}{{ result.score }}</div>
+        <div class="stat-label">Marks Scored</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">📊</div>
+      <div>
+        <div class="stat-value">{{ result.percentage }}%</div>
+        <div class="stat-label">Percentage</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex gap-2 mb-3 flex-wrap fade-up fade-up-2">
+    <a href="{% url 'chapter_detail' result.chapter.id %}" class="btn btn-secondary">← Back to Chapter</a>
+    <a href="{% url 'take_quiz' result.chapter.id %}" class="btn btn-primary">📝 Retake Quiz</a>
+    <a href="{% url 'subject_detail' result.chapter.subject.id %}" class="btn btn-outline">View Course</a>
+  </div>
+
+  <!-- Question Review -->
+  <div class="section-title">📋 Question Review</div>
+  {% for item in question_results %}
+  <div class="answer-card {% if item.is_correct %}correct{% else %}wrong{% endif %} fade-up">
+    <div class="flex items-start gap-2 mb-2">
+      <span style="font-size:18px;">{% if item.is_correct %}✅{% else %}❌{% endif %}</span>
+      <div style="flex:1;">
+        <div style="font-weight:600; margin-bottom:12px;">{{ forloop.counter }}. {{ item.question.question_text }}</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+          {% for opt_val, opt_label in item.question.get_options %}
+          <div class="quiz-option"
+               style="{% if opt_val == item.question.correct_answer %}border-color:var(--success);background:rgba(0,200,122,0.1);{% elif opt_val == item.chosen and not item.is_correct %}border-color:var(--danger);background:rgba(255,82,82,0.1);{% endif %}
+                      margin:0; cursor:default;">
+            <div class="option-letter">{{ opt_val }}</div>
+            <span style="font-size:13px;">{{ opt_label }}</span>
+            {% if opt_val == item.question.correct_answer %}<span style="margin-left:auto;color:var(--success);font-size:12px;font-weight:700;">✓</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div class="flex items-center gap-2 mt-2 text-sm">
+          <span class="text-muted">Your answer: <strong style="color:{% if item.is_correct %}var(--success){% else %}var(--danger){% endif %}">
+            {{ item.chosen|default:'(not answered)' }}
+          </strong></span>
+          {% if not item.is_correct %}
+          <span class="text-muted">· Correct: <strong style="color:var(--success)">{{ item.question.correct_answer }}</strong></span>
+          {% endif %}
+        </div>
+        {% if item.question.explanation %}
+        <div style="margin-top:10px; padding:10px; background:rgba(79,122,255,0.05); border-radius:var(--r2); border:1px solid rgba(79,122,255,0.15);">
+          <span style="font-size:12px; font-weight:700; color:var(--accent);">💡 Explanation: </span>
+          <span style="font-size:13px; color:var(--text2);">{{ item.question.explanation }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

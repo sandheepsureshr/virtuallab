@@ -1,0 +1,109 @@
+{% extends 'lab/base.html' %}
+{% block title %}Students{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_students' %}" class="sidebar-link active"><span class="icon">👥</span> Students</a>
+      <a href="{% url 'admin_analytics' %}" class="sidebar-link"><span class="icon">📊</span> Analytics</a>
+      <a href="{% url 'admin_announcements' %}" class="sidebar-link"><span class="icon">📢</span> Announcements</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">👥 Students</h1>
+        <p class="page-subtitle">{{ students.count }} registered students</p>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <form method="get" class="mb-3">
+      <div class="search-bar" style="max-width:400px;">
+        <span>🔍</span>
+        <input type="text" name="q" placeholder="Search by name, username, or email..." value="{{ query }}">
+        <button type="submit">Search</button>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Email</th>
+            <th>Institution</th>
+            <th>Courses</th>
+            <th>Avg Score</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr>
+            <td>
+              <div class="flex items-center gap-2">
+                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;">
+                  {{ student.first_name|first|upper|default:student.username|first|upper }}
+                </div>
+                <div>
+                  <div style="font-weight:600;">{{ student.get_full_name|default:student.username }}</div>
+                  <div class="text-dim text-xs">@{{ student.username }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-muted text-sm">{{ student.email }}</td>
+            <td class="text-muted text-sm">{{ student.profile.institution|default:"—" }}</td>
+            <td>
+              <span class="badge badge-blue">{{ student.enrollments.count }}</span>
+            </td>
+            <td>
+              <span style="font-weight:600; color:var(--accent);">
+                {% if student.profile %}{{ student.profile.overall_average }}%{% else %}—{% endif %}
+              </span>
+            </td>
+            <td>
+              {% if student.profile and student.profile.is_blocked %}
+                <span class="badge badge-red">Blocked</span>
+              {% else %}
+                <span class="badge badge-green">Active</span>
+              {% endif %}
+            </td>
+            <td class="text-dim text-xs">{{ student.date_joined|date:"M d, Y" }}</td>
+            <td>
+              <div class="flex gap-1">
+                <a href="{% url 'admin_student_progress' student.id %}" class="btn btn-outline btn-sm">Progress</a>
+                <form method="post" action="{% url 'toggle_block_student' student.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm {% if student.profile and student.profile.is_blocked %}btn-success{% else %}btn-warning{% endif %}"
+                          onclick="return confirm('Are you sure?')">
+                    {% if student.profile and student.profile.is_blocked %}Unblock{% else %}Block{% endif %}
+                  </button>
+                </form>
+                <form method="post" action="{% url 'delete_student' student.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this student? This cannot be undone.')">Del</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-dim" style="padding:40px;">
+              No students found{% if query %} for "{{ query }}"{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

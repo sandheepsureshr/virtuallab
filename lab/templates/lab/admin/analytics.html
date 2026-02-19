@@ -1,0 +1,97 @@
+{% extends 'lab/base.html' %}
+{% block title %}Analytics{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_students' %}" class="sidebar-link"><span class="icon">👥</span> Students</a>
+      <a href="{% url 'admin_analytics' %}" class="sidebar-link active"><span class="icon">📊</span> Analytics</a>
+      <a href="{% url 'admin_announcements' %}" class="sidebar-link"><span class="icon">📢</span> Announcements</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">📊 Platform Analytics</h1>
+        <p class="page-subtitle">Subject-wise learning and performance statistics</p>
+      </div>
+    </div>
+
+    <!-- Subject Stats -->
+    <div class="section-title">📚 Subject Performance</div>
+    <div class="table-wrap mb-3">
+      <table>
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Enrollments</th>
+            <th>Completions</th>
+            <th>Avg Score</th>
+            <th>Performance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stat in subject_stats %}
+          <tr>
+            <td>
+              <a href="{% url 'admin_chapters' stat.subject.id %}" style="color:var(--accent);text-decoration:none;font-weight:600;">
+                {{ stat.subject.title }}
+              </a>
+            </td>
+            <td><span class="badge badge-blue">{{ stat.enrollments }}</span></td>
+            <td><span class="badge badge-green">{{ stat.completions }}</span></td>
+            <td>
+              <span style="font-weight:700; color:{% if stat.avg_score >= 60 %}var(--success){% else %}var(--warning){% endif %}">
+                {{ stat.avg_score|floatformat:1 }}%
+              </span>
+            </td>
+            <td style="min-width:150px;">
+              <div class="progress-bar">
+                <div class="progress-fill {% if stat.avg_score >= 60 %}green{% else %}orange{% endif %}"
+                     style="width:{{ stat.avg_score|floatformat:0 }}%"></div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-dim" style="padding:40px;">No data yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Top Students -->
+    <div class="section-title">🏆 Most Active Students</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rank</th><th>Student</th><th>Quizzes Taken</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for student in top_students %}
+          <tr>
+            <td>
+              <span style="font-weight:800; font-size:16px; color:{% if forloop.counter == 1 %}#ffd700{% elif forloop.counter == 2 %}#c0c0c0{% elif forloop.counter == 3 %}#cd7f32{% else %}var(--text3){% endif %}">
+                #{{ forloop.counter }}
+              </span>
+            </td>
+            <td>
+              <div style="font-weight:600;">{{ student.get_full_name|default:student.username }}</div>
+              <div class="text-dim text-xs">@{{ student.username }}</div>
+            </td>
+            <td><span class="badge badge-blue">{{ student.quiz_count }} quizzes</span></td>
+            <td>
+              <a href="{% url 'admin_student_progress' student.id %}" class="btn btn-outline btn-sm">View Progress</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-dim" style="padding:40px;">No quiz data yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

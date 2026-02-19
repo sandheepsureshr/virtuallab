@@ -1,0 +1,86 @@
+{% extends 'lab/base.html' %}
+{% block title %}Chapters - {{ subject.title }}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link active"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_students' %}" class="sidebar-link"><span class="icon">👥</span> Students</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">{{ subject.title }}</div>
+      {% for chapter in chapters %}
+      <a href="{% url 'admin_topics' chapter.id %}" class="sidebar-link">
+        <span class="icon">📖</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;">{{ chapter.title }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_subjects' %}">Subjects</a>
+      <span>›</span>
+      <span>{{ subject.title }}</span>
+      <span>›</span>
+      <span>Chapters</span>
+    </div>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Chapters</h1>
+        <p class="page-subtitle">{{ subject.title }} · {{ chapters.count }} chapters</p>
+      </div>
+      <a href="{% url 'admin_chapter_add' subject.id %}" class="btn btn-primary">+ Add Chapter</a>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Chapter</th>
+            <th>Topics</th>
+            <th>Quiz Questions</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for chapter in chapters %}
+          <tr>
+            <td><span class="badge badge-gray">{{ chapter.order }}</span></td>
+            <td>
+              <div style="font-weight:600;">{{ chapter.title }}</div>
+              <div class="text-dim text-xs">{{ chapter.description|truncatechars:40|default:"No description" }}</div>
+            </td>
+            <td><span class="badge badge-blue">{{ chapter.topic_count }}</span></td>
+            <td><span class="badge {% if chapter.q_count > 0 %}badge-green{% else %}badge-gray{% endif %}">{{ chapter.q_count }}</span></td>
+            <td>
+              {% if chapter.is_active %}<span class="badge badge-green">Active</span>
+              {% else %}<span class="badge badge-gray">Inactive</span>{% endif %}
+            </td>
+            <td>
+              <div class="flex gap-1 flex-wrap">
+                <a href="{% url 'admin_topics' chapter.id %}" class="btn btn-outline btn-sm">Topics</a>
+                <a href="{% url 'admin_quiz' chapter.id %}" class="btn btn-outline btn-sm">Quiz</a>
+                <a href="{% url 'admin_chapter_edit' chapter.id %}" class="btn btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{% url 'admin_chapter_delete' chapter.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this chapter?')">Del</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-dim" style="padding:40px;">No chapters yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

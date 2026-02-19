@@ -1,0 +1,163 @@
+{% extends 'lab/base.html' %}
+{% block title %}VirtualLab — Learn Without Limits{% endblock %}
+
+{% block body %}
+<style>
+  .hero {
+    min-height: calc(100vh - 64px);
+    display: flex; align-items: center;
+    background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(79,122,255,0.12) 0%, transparent 60%);
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234f7aff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; text-align: center; padding: 60px 24px; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(79,122,255,0.1); border: 1px solid rgba(79,122,255,0.25);
+    color: var(--accent); border-radius: 99px; padding: 6px 16px;
+    font-size: 13px; font-weight: 600; margin-bottom: 32px;
+  }
+  .hero-title { font-size: clamp(40px, 6vw, 72px); font-weight: 800; line-height: 1.05; margin-bottom: 20px; }
+  .hero-title .highlight {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero-desc { font-size: 18px; color: var(--text2); line-height: 1.6; margin-bottom: 36px; max-width: 540px; margin-left: auto; margin-right: auto; }
+  .hero-actions { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+  .hero-stats {
+    display: flex; align-items: center; justify-content: center; gap: 32px;
+    margin-top: 60px; flex-wrap: wrap;
+  }
+  .hero-stat .value { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; }
+  .hero-stat .label { font-size: 13px; color: var(--text2); }
+  .features-section { padding: 80px 0; background: var(--bg2); border-top: 1px solid var(--border); }
+  .courses-section { padding: 80px 0; }
+  .feature-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 28px;
+  }
+  .feature-icon { font-size: 32px; margin-bottom: 16px; display: block; }
+  .feature-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .feature-desc { font-size: 14px; color: var(--text2); line-height: 1.6; }
+</style>
+
+<div class="hero">
+  <div class="hero-content fade-up">
+    <div class="hero-badge">🧪 Virtual Learning Platform</div>
+    <h1 class="hero-title">Learn Smarter with<br><span class="highlight">Virtual Lab</span></h1>
+    <p class="hero-desc">Master DBMS, Python Programming, Algorithms and more through structured courses with interactive notes, videos, and quizzes — all online.</p>
+    <div class="hero-actions">
+      <a href="{% url 'register' %}" class="btn btn-gradient btn-lg">🚀 Start Learning Free</a>
+      <a href="{% url 'login' %}" class="btn btn-outline btn-lg">Login →</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat text-center">
+        <div class="value text-accent">{{ subjects.count }}</div>
+        <div class="label">Courses Available</div>
+      </div>
+      <div style="width:1px; height:40px; background:var(--border);"></div>
+      <div class="hero-stat text-center">
+        <div class="value text-accent">100%</div>
+        <div class="label">Online & Free</div>
+      </div>
+      <div style="width:1px; height:40px; background:var(--border);"></div>
+      <div class="hero-stat text-center">
+        <div class="value text-accent">∞</div>
+        <div class="label">Practice Quizzes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="features-section">
+  <div class="container">
+    <h2 class="section-title" style="font-size:28px; text-align:center; margin-bottom:40px; display:block;">
+      Everything You Need to Learn
+    </h2>
+    <div class="grid-3">
+      <div class="feature-card fade-up fade-up-1">
+        <span class="feature-icon">📖</span>
+        <h3 class="feature-title">Rich Study Notes</h3>
+        <p class="feature-desc">Structured, well-formatted notes for each topic with code examples, diagrams, and clear explanations.</p>
+      </div>
+      <div class="feature-card fade-up fade-up-2">
+        <span class="feature-icon">🎥</span>
+        <h3 class="feature-title">Instructional Videos</h3>
+        <p class="feature-desc">Embedded video lessons for each chapter to reinforce understanding with visual demonstrations.</p>
+      </div>
+      <div class="feature-card fade-up fade-up-3">
+        <span class="feature-icon">📝</span>
+        <h3 class="feature-title">Chapter Quizzes</h3>
+        <p class="feature-desc">Take quizzes after each chapter. Get instant results with detailed explanations to solidify learning.</p>
+      </div>
+      <div class="feature-card fade-up fade-up-1">
+        <span class="feature-icon">🔒</span>
+        <h3 class="feature-title">Sequential Learning</h3>
+        <p class="feature-desc">Chapters unlock progressively — complete and pass each chapter quiz before advancing to the next.</p>
+      </div>
+      <div class="feature-card fade-up fade-up-2">
+        <span class="feature-icon">📊</span>
+        <h3 class="feature-title">Progress Tracking</h3>
+        <p class="feature-desc">Visual progress dashboards show your completion percentage, quiz scores, and overall performance.</p>
+      </div>
+      <div class="feature-card fade-up fade-up-3">
+        <span class="feature-icon">🏆</span>
+        <h3 class="feature-title">Performance Analytics</h3>
+        <p class="feature-desc">Detailed analytics and reports for both students and administrators to track learning outcomes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Courses -->
+{% if subjects %}
+<section class="courses-section">
+  <div class="container">
+    <div class="flex items-center justify-between mb-3">
+      <h2 style="font-size:28px; font-weight:800;">Available Courses</h2>
+      <a href="{% url 'register' %}" class="btn btn-outline btn-sm">View All →</a>
+    </div>
+    <div class="grid-auto">
+      {% for subject in subjects %}
+      <a href="{% url 'register' %}" class="subject-card">
+        <div class="subject-card-header" style="background: linear-gradient(135deg, {{ subject.color }}22, {{ subject.color }}44);">
+          <span>
+            {% if subject.icon == 'database' %}🗄️
+            {% elif subject.icon == 'code' %}💻
+            {% elif subject.icon == 'cpu' %}⚙️
+            {% elif subject.icon == 'network' %}🌐
+            {% else %}📚{% endif %}
+          </span>
+        </div>
+        <div class="subject-card-body">
+          <h3 class="subject-card-title">{{ subject.title }}</h3>
+          <p class="subject-card-desc">{{ subject.description|truncatechars:80 }}</p>
+          <div class="subject-card-meta">
+            <span>📖 {{ subject.total_chapters }} chapters</span>
+            <span>👥 {{ subject.enrolled_count }} students</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+<section style="padding:80px 0; text-align:center; background: linear-gradient(180deg, transparent, rgba(79,122,255,0.05));">
+  <div class="container">
+    <h2 style="font-size:36px; margin-bottom:16px;">Ready to Start Learning?</h2>
+    <p style="color:var(--text2); margin-bottom:28px; font-size:16px;">Join thousands of students mastering skills through VirtualLab.</p>
+    <a href="{% url 'register' %}" class="btn btn-gradient btn-lg">Create Free Account 🚀</a>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--border); padding:24px; text-align:center; color:var(--text3); font-size:13px;">
+  © 2025 VirtualLab — Virtual Learning Platform
+</footer>
+{% endblock %}

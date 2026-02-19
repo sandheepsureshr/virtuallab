@@ -1,0 +1,79 @@
+{% extends 'lab/base.html' %}
+{% block title %}Topics - {{ chapter.title }}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_chapters' chapter.subject.id %}" class="sidebar-link"><span class="icon">📖</span> {{ chapter.subject.title }}</a>
+      <a href="{% url 'admin_topics' chapter.id %}" class="sidebar-link active"><span class="icon">📄</span> Topics</a>
+      <a href="{% url 'admin_quiz' chapter.id %}" class="sidebar-link"><span class="icon">📝</span> Quiz</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_subjects' %}">Subjects</a>
+      <span>›</span>
+      <a href="{% url 'admin_chapters' chapter.subject.id %}">{{ chapter.subject.title }}</a>
+      <span>›</span>
+      <a href="{% url 'admin_chapters' chapter.subject.id %}">{{ chapter.title }}</a>
+      <span>›</span>
+      <span>Topics</span>
+    </div>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Topics</h1>
+        <p class="page-subtitle">{{ chapter.title }} · {{ topics|length }} topics</p>
+      </div>
+      <a href="{% url 'admin_topic_add' chapter.id %}" class="btn btn-primary">+ Add Topic</a>
+    </div>
+
+    {% if topics %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Order</th><th>Topic</th><th>Video</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for topic in topics %}
+          <tr>
+            <td>{{ topic.order }}</td>
+            <td style="font-weight:600;">{{ topic.title }}</td>
+            <td>
+              {% if topic.video_url or topic.video_file %}
+                <span class="badge badge-blue">🎥 Yes</span>
+              {% else %}
+                <span class="badge badge-gray">No video</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if topic.is_active %}<span class="badge badge-green">Active</span>
+              {% else %}<span class="badge badge-gray">Inactive</span>{% endif %}
+            </td>
+            <td>
+              <div class="flex gap-1">
+                <a href="{% url 'admin_topic_edit' topic.id %}" class="btn btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{% url 'admin_topic_delete' topic.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this topic?')">Del</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📄</div>
+      <h3 class="empty-title">No topics yet</h3>
+      <p class="empty-desc">Add study topics with notes and videos.</p>
+      <a href="{% url 'admin_topic_add' chapter.id %}" class="btn btn-primary">+ Add First Topic</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

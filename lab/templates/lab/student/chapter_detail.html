@@ -1,0 +1,189 @@
+{% extends 'lab/base.html' %}
+{% block title %}{{ chapter.title }}{% endblock %}
+
+{% block body %}
+<style>
+  .chapter-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0; min-height: calc(100vh - 64px); }
+  .chapter-sidebar {
+    background: var(--bg2); border-right: 1px solid var(--border);
+    padding: 20px 12px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto;
+  }
+  .chapter-main { padding: 32px; min-width: 0; }
+  .topic-content-area { display: none; }
+  .topic-content-area.active { display: block; animation: fadeUp 0.3s ease; }
+  @media (max-width: 768px) {
+    .chapter-layout { grid-template-columns: 1fr; }
+    .chapter-sidebar { position: static; height: auto; }
+  }
+</style>
+
+<div class="chapter-layout">
+  <!-- Chapter Sidebar -->
+  <div class="chapter-sidebar">
+    <a href="{% url 'subject_detail' subject.id %}" style="display:flex;align-items:center;gap:6px;color:var(--text3);text-decoration:none;font-size:13px;margin-bottom:16px;">
+      ← {{ subject.title }}
+    </a>
+    <h3 style="font-size:14px; font-weight:700; margin-bottom:16px; color:var(--text);">{{ chapter.title }}</h3>
+
+    <!-- Progress -->
+    {% if progress %}
+    <div style="margin-bottom:16px; padding:12px; background:var(--card); border-radius:var(--r2); border:1px solid var(--border);">
+      <div class="flex justify-between text-xs mb-1">
+        <span class="text-muted">Topics viewed</span>
+        <span style="color:var(--accent); font-weight:600;">{{ progress.topics_viewed_count }}/{{ progress.topics_total }}</span>
+      </div>
+      <div class="progress-bar">
+        {% if progress.topics_total > 0 %}
+        <div class="progress-fill" style="width:{% widthratio progress.topics_viewed_count progress.topics_total 100 %}%"></div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Topics List -->
+    <div class="sidebar-label">Topics</div>
+    {% for topic in topics %}
+    <button class="topic-nav-item" onclick="showTopic({{ forloop.counter0 }})" id="topic-nav-{{ forloop.counter0 }}"
+            style="background:none;border:none;width:100%;text-align:left;">
+      <div class="topic-dot {% if progress and topic in progress.topics_viewed.all %}viewed{% endif %}" id="dot-{{ forloop.counter0 }}"></div>
+      <span style="flex:1; font-size:13px;">{{ topic.title }}</span>
+    </button>
+    {% empty %}
+    <p class="text-dim text-xs" style="padding:8px 12px;">No topics in this chapter.</p>
+    {% endfor %}
+
+    <hr class="divider">
+    <!-- Quiz -->
+    {% if chapter.has_quiz %}
+    <a href="{% url 'take_quiz' chapter.id %}" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
+      {% if quiz_result %}📝 Retake Quiz{% else %}📝 Take Quiz{% endif %}
+    </a>
+    {% if quiz_result %}
+    <div style="text-align:center;margin-top:8px;">
+      <span style="font-size:13px; color:{% if quiz_result.passed %}var(--success){% else %}var(--danger){% endif %}; font-weight:600;">
+        Last: {{ quiz_result.percentage }}% {% if quiz_result.passed %}✅{% else %}❌{% endif %}
+      </span>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="text-xs text-dim" style="text-align:center;">No quiz for this chapter yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="chapter-main">
+    <div class="breadcrumb">
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+      <span>›</span>
+      <a href="{% url 'subject_detail' subject.id %}">{{ subject.title }}</a>
+      <span>›</span>
+      <span>{{ chapter.title }}</span>
+    </div>
+
+    {% if topics %}
+    {% for topic in topics %}
+    <div class="topic-content-area {% if forloop.first %}active{% endif %}" id="topic-{{ forloop.counter0 }}"
+         data-topic-id="{{ topic.id }}">
+      <!-- Topic Header -->
+      <div class="flex items-start justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h2 style="font-size:22px; font-weight:800; margin-bottom:4px;">{{ topic.title }}</h2>
+          <p class="text-muted text-sm">Topic {{ forloop.counter }} of {{ topics|length }} · {{ chapter.title }}</p>
+        </div>
+        <div class="flex gap-2">
+          {% if not forloop.first %}
+          <button class="btn btn-outline btn-sm" onclick="prevTopic({{ forloop.counter0 }})">← Prev</button>
+          {% endif %}
+          {% if not forloop.last %}
+          <button class="btn btn-primary btn-sm" onclick="nextTopic({{ forloop.counter0 }})">Next →</button>
+          {% else %}
+          <a href="{% url 'take_quiz' chapter.id %}" class="btn btn-success btn-sm">Take Quiz 📝</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Video (if available) -->
+      {% if topic.video_url or topic.video_file %}
+      <div class="card mb-3" style="padding:16px;">
+        <div class="section-title" style="font-size:14px;">🎥 Video Lesson</div>
+        <div class="video-embed">
+          {% if topic.video_url %}
+          <iframe src="{{ topic.video_url }}" frameborder="0" allowfullscreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+          </iframe>
+          {% elif topic.video_file %}
+          <video controls>
+            <source src="{{ topic.video_file.url }}">
+          </video>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Notes -->
+      <div class="card">
+        <div class="section-title" style="font-size:14px;">📖 Study Notes</div>
+        <div class="notes-content">
+          {{ topic.content|safe }}
+        </div>
+      </div>
+
+      <!-- Mark as viewed -->
+      <div style="margin-top:20px; text-align:right;">
+        <button onclick="markViewed({{ topic.id }}, {{ forloop.counter0 }})" class="btn btn-success btn-sm" id="viewed-btn-{{ forloop.counter0 }}">
+          ✓ Mark as Completed
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📖</div>
+      <h3 class="empty-title">No topics yet</h3>
+      <p class="empty-desc">Content is being prepared for this chapter.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CSRF = '{{ csrf_token }}';
+let currentTopic = 0;
+const totalTopics = {{ topics|length }};
+
+function showTopic(index) {
+  document.querySelectorAll('.topic-content-area').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+  document.querySelectorAll('.topic-nav-item').forEach((el, i) => {
+    el.style.background = i === index ? 'rgba(79,122,255,0.1)' : '';
+    el.style.color = i === index ? 'var(--text)' : '';
+  });
+  currentTopic = index;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextTopic(index) { if (index < totalTopics - 1) showTopic(index + 1); }
+function prevTopic(index) { if (index > 0) showTopic(index - 1); }
+
+async function markViewed(topicId, index) {
+  try {
+    const res = await fetch(`/topic/${topicId}/viewed/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      const dot = document.getElementById(`dot-${index}`);
+      if (dot) dot.classList.add('viewed');
+      const btn = document.getElementById(`viewed-btn-${index}`);
+      if (btn) { btn.textContent = '✓ Completed'; btn.disabled = true; btn.style.opacity = '0.6'; }
+    }
+  } catch (e) {}
+}
+
+// Highlight active nav item
+showTopic(0);
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'lab/base.html' %}
+{% block title %}Quiz - {{ chapter.title }}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_chapters' chapter.subject.id %}" class="sidebar-link"><span class="icon">📖</span> {{ chapter.subject.title }}</a>
+      <a href="{% url 'admin_topics' chapter.id %}" class="sidebar-link"><span class="icon">📄</span> Topics</a>
+      <a href="{% url 'admin_quiz' chapter.id %}" class="sidebar-link active"><span class="icon">📝</span> Quiz</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_chapters' chapter.subject.id %}">{{ chapter.subject.title }}</a>
+      <span>›</span>
+      <a href="{% url 'admin_topics' chapter.id %}">{{ chapter.title }}</a>
+      <span>›</span>
+      <span>Quiz</span>
+    </div>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">📝 Quiz Questions</h1>
+        <p class="page-subtitle">{{ chapter.title }} · {{ questions|length }} questions</p>
+      </div>
+      <a href="{% url 'admin_question_add' chapter.id %}" class="btn btn-primary">+ Add Question</a>
+    </div>
+
+    {% if questions %}
+    {% for question in questions %}
+    <div class="card mb-2 fade-up">
+      <div class="flex items-start justify-between gap-2">
+        <div style="flex:1;">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="badge badge-gray">Q{{ forloop.counter }}</span>
+            <span class="badge badge-blue">{{ question.get_question_type_display }}</span>
+            <span class="badge badge-purple">{{ question.marks }} mark{{ question.marks|pluralize }}</span>
+          </div>
+          <p style="font-weight:600; margin-bottom:12px;">{{ question.question_text }}</p>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <div style="padding:8px 12px; border-radius:var(--r2); border:1px solid {% if question.correct_answer == 'A' %}var(--success){% else %}var(--border){% endif %}; background:{% if question.correct_answer == 'A' %}rgba(0,200,122,0.1){% else %}var(--bg2){% endif %};">
+              <span class="text-dim text-xs">A.</span> {{ question.option_a }}
+              {% if question.correct_answer == 'A' %}<span style="float:right;color:var(--success);font-weight:700;">✓</span>{% endif %}
+            </div>
+            <div style="padding:8px 12px; border-radius:var(--r2); border:1px solid {% if question.correct_answer == 'B' %}var(--success){% else %}var(--border){% endif %}; background:{% if question.correct_answer == 'B' %}rgba(0,200,122,0.1){% else %}var(--bg2){% endif %};">
+              <span class="text-dim text-xs">B.</span> {{ question.option_b }}
+              {% if question.correct_answer == 'B' %}<span style="float:right;color:var(--success);font-weight:700;">✓</span>{% endif %}
+            </div>
+            {% if question.option_c %}
+            <div style="padding:8px 12px; border-radius:var(--r2); border:1px solid {% if question.correct_answer == 'C' %}var(--success){% else %}var(--border){% endif %}; background:{% if question.correct_answer == 'C' %}rgba(0,200,122,0.1){% else %}var(--bg2){% endif %};">
+              <span class="text-dim text-xs">C.</span> {{ question.option_c }}
+              {% if question.correct_answer == 'C' %}<span style="float:right;color:var(--success);font-weight:700;">✓</span>{% endif %}
+            </div>
+            {% endif %}
+            {% if question.option_d %}
+            <div style="padding:8px 12px; border-radius:var(--r2); border:1px solid {% if question.correct_answer == 'D' %}var(--success){% else %}var(--border){% endif %}; background:{% if question.correct_answer == 'D' %}rgba(0,200,122,0.1){% else %}var(--bg2){% endif %};">
+              <span class="text-dim text-xs">D.</span> {{ question.option_d }}
+              {% if question.correct_answer == 'D' %}<span style="float:right;color:var(--success);font-weight:700;">✓</span>{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          {% if question.explanation %}
+          <div style="margin-top:10px; padding:8px 12px; background:rgba(79,122,255,0.05); border-radius:var(--r2); border:1px solid rgba(79,122,255,0.15);">
+            <span style="font-size:12px; color:var(--accent); font-weight:600;">💡 Explanation: </span>
+            <span style="font-size:13px; color:var(--text2);">{{ question.explanation }}</span>
+          </div>
+          {% endif %}
+        </div>
+        <div class="flex flex-col gap-1">
+          <a href="{% url 'admin_question_edit' question.id %}" class="btn btn-secondary btn-sm">Edit</a>
+          <form method="post" action="{% url 'admin_question_delete' question.id %}">
+            {% csrf_token %}
+            <button class="btn btn-danger btn-sm" style="width:100%;" onclick="return confirm('Delete?')">Del</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📝</div>
+      <h3 class="empty-title">No questions yet</h3>
+      <p class="empty-desc">Add quiz questions for this chapter to assess student understanding.</p>
+      <a href="{% url 'admin_question_add' chapter.id %}" class="btn btn-primary">+ Add First Question</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

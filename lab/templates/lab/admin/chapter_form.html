@@ -1,0 +1,55 @@
+{% extends 'lab/base.html' %}
+{% block title %}{{ action }} Chapter{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_chapters' subject.id %}" class="sidebar-link active"><span class="icon">📖</span> {{ subject.title }}</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="breadcrumb">
+      <a href="{% url 'admin_subjects' %}">Subjects</a>
+      <span>›</span>
+      <a href="{% url 'admin_chapters' subject.id %}">{{ subject.title }}</a>
+      <span>›</span>
+      <span>{{ action }} Chapter</span>
+    </div>
+    <div class="page-header">
+      <h1 class="page-title">{{ action }} Chapter</h1>
+      <a href="{% url 'admin_chapters' subject.id %}" class="btn btn-secondary">← Back</a>
+    </div>
+
+    <div class="card" style="max-width:600px;">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Chapter Title *</label>
+          <input type="text" name="title" class="form-control" value="{{ form.title.value|default:'' }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="3">{{ form.description.value|default:'' }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Order (lower = shown first)</label>
+          <input type="number" name="order" class="form-control" value="{{ form.order.value|default:0 }}">
+        </div>
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" name="is_active" {% if form.is_active.value %}checked{% endif %} style="width:16px;height:16px;">
+            <span class="form-label" style="margin:0;">Active</span>
+          </label>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="btn btn-primary">{{ action }} Chapter</button>
+          <a href="{% url 'admin_chapters' subject.id %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

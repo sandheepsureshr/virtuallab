@@ -1,0 +1,78 @@
+{% extends 'lab/base.html' %}
+{% block title %}Manage Subjects{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <a href="{% url 'admin_dashboard' %}" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+      <a href="{% url 'admin_subjects' %}" class="sidebar-link active"><span class="icon">📚</span> Subjects</a>
+      <a href="{% url 'admin_students' %}" class="sidebar-link"><span class="icon">👥</span> Students</a>
+      <a href="{% url 'admin_analytics' %}" class="sidebar-link"><span class="icon">📊</span> Analytics</a>
+      <a href="{% url 'admin_announcements' %}" class="sidebar-link"><span class="icon">📢</span> Announcements</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">📚 Subjects</h1>
+        <p class="page-subtitle">{{ subjects|length }} subjects in the platform</p>
+      </div>
+      <a href="{% url 'admin_subject_add' %}" class="btn btn-primary">+ Add Subject</a>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Category</th>
+            <th>Chapters</th>
+            <th>Enrollments</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for subject in subjects %}
+          <tr>
+            <td>
+              <div class="flex items-center gap-2">
+                <div style="width:36px;height:36px;border-radius:8px;background:{{ subject.color }}22;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                  {% if subject.icon == 'database' %}🗄️{% elif subject.icon == 'code' %}💻{% elif subject.icon == 'cpu' %}⚙️{% else %}📚{% endif %}
+                </div>
+                <div>
+                  <div style="font-weight:600;">{{ subject.title }}</div>
+                  <div class="text-dim text-xs">{{ subject.description|truncatechars:40 }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge badge-purple">{{ subject.category }}</span></td>
+            <td><span class="badge badge-blue">{{ subject.chapter_count }}</span></td>
+            <td><span class="badge badge-green">{{ subject.enroll_count }}</span></td>
+            <td>
+              {% if subject.is_active %}<span class="badge badge-green">Active</span>
+              {% else %}<span class="badge badge-gray">Inactive</span>{% endif %}
+            </td>
+            <td>
+              <div class="flex gap-1 flex-wrap">
+                <a href="{% url 'admin_chapters' subject.id %}" class="btn btn-outline btn-sm">Chapters</a>
+                <a href="{% url 'admin_subject_edit' subject.id %}" class="btn btn-secondary btn-sm">Edit</a>
+                <form method="post" action="{% url 'admin_subject_delete' subject.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this subject and all its content?')">Del</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-dim" style="padding:40px;">No subjects yet. <a href="{% url 'admin_subject_add' %}" style="color:var(--accent);">Add one!</a></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
