@@ -14,6 +14,12 @@ class StudentRegistrationForm(UserCreationForm):
         model = User
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
@@ -50,7 +56,7 @@ class ChapterForm(forms.ModelForm):
 class TopicForm(forms.ModelForm):
     class Meta:
         model = Topic
-        fields = ['title', 'content', 'video_url', 'video_file', 'order', 'is_active']
+        fields = ['title', 'content', 'video_file', 'order', 'is_active']
         widgets = {
             'content': forms.Textarea(attrs={'rows': 12, 'class': 'rich-editor'}),
         }

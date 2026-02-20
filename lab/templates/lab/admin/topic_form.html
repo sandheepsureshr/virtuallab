@@ -68,17 +68,12 @@
           <div class="card">
             <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;">🎥 Video</h3>
             <div class="form-group">
-              <label class="form-label">Video URL (YouTube embed or direct link)</label>
-              <input type="url" name="video_url" class="form-control" value="{{ form.video_url.value|default:'' }}"
-                     placeholder="https://www.youtube.com/embed/VIDEO_ID">
-              <p class="form-help">Use YouTube embed URL format: https://www.youtube.com/embed/VIDEO_ID</p>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Or Upload Video File</label>
+              <label class="form-label">Upload Video File</label>
               <input type="file" name="video_file" class="form-control" accept="video/*">
               {% if topic and topic.video_file %}
               <p class="form-help">Current: {{ topic.video_file.name }}</p>
               {% endif %}
+              <p class="form-help">Supported formats: MP4, WebM, OGV</p>
             </div>
           </div>
         </div>

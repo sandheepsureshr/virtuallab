@@ -11,8 +11,32 @@
     padding: 8px 20px; font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 700;
     color: var(--accent); margin-bottom: 24px;
   }
-  .question-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; margin-bottom: 24px; }
+  .question-card.unanswered { border-color: var(--danger); background: rgba(255,82,82,0.05); }
+  .question-card.answered { border-color: var(--success); background: rgba(0,200,122,0.05); }
+  .quiz-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--border2); border-radius: var(--r2); margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+  .quiz-option:hover { border-color: var(--accent); background: rgba(79,122,255,0.05); }
+  .quiz-option.selected { border-color: var(--accent); background: rgba(79,122,255,0.1); }
+  .option-letter { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    background: var(--bg2); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 700; 
+    color: var(--text); 
+    border: 2px solid var(--border); 
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .quiz-option.selected .option-letter { 
+    background: var(--accent); 
+    color: white; 
+    border-color: var(--accent); 
+  }
   .question-number { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .question-status { font-size: 14px; font-weight: bold; }
   .question-text { font-size: 16px; font-weight: 600; margin-bottom: 18px; line-height: 1.5; }
   .submit-bar {
     position: sticky; bottom: 0;
@@ -50,7 +74,7 @@
 
     {% for question in questions %}
     <div class="question-card fade-up" style="animation-delay: {{ forloop.counter0 }}00ms">
-      <div class="question-number">Question {{ forloop.counter }} of {{ questions|length }} · {{ question.marks }} mark{{ question.marks|pluralize }}</div>
+      <div class="question-number">Question {{ forloop.counter }} of {{ questions|length }} · {{ question.marks }} mark{{ question.marks|pluralize }} <span class="question-status" id="status-{{ question.id }}">⏳</span></div>
       <div class="question-text">{{ question.question_text }}</div>
 
       <div>
@@ -73,9 +97,12 @@
         <div class="progress-bar" style="width:200px; margin-top:4px;">
           <div class="progress-fill" id="answer-progress" style="width:0%"></div>
         </div>
+        <div id="validation-message" style="font-size: 12px; color: var(--danger); margin-top: 4px; display: none;">
+          ⚠️ Please answer all questions to submit
+        </div>
       </div>
-      <button type="submit" class="btn btn-gradient btn-lg" id="submitBtn">
-        Submit Quiz →
+      <button type="submit" class="btn btn-gradient btn-lg" id="submitBtn" disabled>
+        Answer {{ questions|length }} question{{ questions|length|pluralize }} →
       </button>
     </div>
   </form>
@@ -111,13 +138,102 @@
     const answered = document.querySelectorAll('input[type="radio"]:checked').length;
     document.getElementById('answered-count').textContent = answered;
     document.getElementById('answer-progress').style.width = `${(answered/total)*100}%`;
+    
+    // Update question card styles and collect unanswered question numbers
+    let unansweredNumbers = [];
+    document.querySelectorAll('.question-card').forEach((card, index) => {
+      const questionInputs = card.querySelectorAll('input[type="radio"]');
+      const isAnswered = Array.from(questionInputs).some(input => input.checked);
+      card.classList.remove('answered', 'unanswered');
+      
+      // Update status indicator
+      const statusEl = card.querySelector('.question-status');
+      if (isAnswered) {
+        card.classList.add('answered');
+        statusEl.textContent = '✅';
+        statusEl.style.color = 'var(--success)';
+      } else {
+        card.classList.add('unanswered');
+        statusEl.textContent = '⏳';
+        statusEl.style.color = 'var(--danger)';
+        unansweredNumbers.push(index + 1);
+      }
+    });
+    
+    // Update validation message and submit button
+    const validationMsg = document.getElementById('validation-message');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (answered === total) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Quiz →';
+      validationMsg.style.display = 'none';
+    } else {
+      submitBtn.disabled = true;
+      const remaining = total - answered;
+      submitBtn.textContent = `Answer ${remaining} more question${remaining === 1 ? '' : 's'}`;
+      
+      // Show specific unanswered questions
+      if (unansweredNumbers.length > 0) {
+        const questionList = unansweredNumbers.slice(0, 5).join(', '); // Show first 5
+        const moreText = unansweredNumbers.length > 5 ? ` +${unansweredNumbers.length - 5} more` : '';
+        validationMsg.innerHTML = `⚠️ Answer question${unansweredNumbers.length === 1 ? '' : 's'}: ${questionList}${moreText}`;
+        validationMsg.style.display = 'block';
+      }
+    }
   }
 
-  // Submit handler
-  document.getElementById('quizForm').addEventListener('submit', () => {
+  // Initialize progress on page load
+  document.addEventListener('DOMContentLoaded', updateProgress);
+
+  // Submit handler with validation
+  document.getElementById('quizForm').addEventListener('submit', function(e) {
+    const total = {{ questions|length }};
+    const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+    
+    if (answered < total) {
+      e.preventDefault();
+      
+      // Collect unanswered question numbers
+      let unansweredNumbers = [];
+      document.querySelectorAll('.question-card').forEach((card, index) => {
+        const questionInputs = card.querySelectorAll('input[type="radio"]');
+        const isAnswered = Array.from(questionInputs).some(input => input.checked);
+        if (!isAnswered) {
+          unansweredNumbers.push(index + 1);
+        }
+      });
+      
+      // Show specific validation message
+      const validationMsg = document.getElementById('validation-message');
+      const questionList = unansweredNumbers.slice(0, 5).join(', ');
+      const moreText = unansweredNumbers.length > 5 ? ` +${unansweredNumbers.length - 5} more` : '';
+      validationMsg.innerHTML = `❌ Cannot submit! Answer question${unansweredNumbers.length === 1 ? '' : 's'}: ${questionList}${moreText}`;
+      validationMsg.style.display = 'block';
+      validationMsg.style.color = 'var(--danger)';
+      validationMsg.style.fontWeight = 'bold';
+      
+      // Scroll to first unanswered question
+      const unansweredCard = document.querySelector('.question-card.unanswered');
+      if (unansweredCard) {
+        unansweredCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        unansweredCard.style.animation = 'shake 0.5s ease-in-out';
+        setTimeout(() => unansweredCard.style.animation = '', 500);
+      }
+      return false;
+    }
+    
     clearInterval(interval);
     document.getElementById('submitBtn').textContent = 'Submitting...';
     document.getElementById('submitBtn').disabled = true;
   });
 </script>
+
+<style>
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+</style>
 {% endblock %}
