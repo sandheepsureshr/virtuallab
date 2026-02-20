@@ -3,6 +3,8 @@
 A complete, fully-functional **Django-based e-learning platform** for students to study
 practical and theoretical subjects like Python Programming, DBMS, and Algorithms online.
 
+<img width="1915" height="922" alt="image" src="https://github.com/user-attachments/assets/f2e20bb9-d456-4455-8316-21c197528824" />
+
 
 ## ✨ Features Summary
 
