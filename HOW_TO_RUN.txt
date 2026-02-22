@@ -1,14 +1,11 @@
-# ⚠️ FIX: If you see the Django Welcome Page
-# =============================================
-# This means you're running the server from the WRONG directory.
-# The manage.py file must be in the SAME folder where you run commands.
 
-# ─── CORRECT SETUP STEPS ──────────────────────────────────────────────────────
+Install
+
 
 # STEP 1: Unzip and navigate INTO the project folder
 unzip VirtualLab_Django_Project.zip
-cd virtuallab_project               # <-- make sure you're IN this folder
-ls                                  # You should see: manage.py, lab/, virtuallab/, etc.
+cd virtuallab_project              
+ls                                  
 
 # STEP 2: Create and activate virtual environment
 python -m venv venv
@@ -39,22 +36,3 @@ python manage.py runserver
 #   Admin:   http://127.0.0.1:8000/admin-panel/   → admin / admin123
 #   Student: http://127.0.0.1:8000/               → student1 / student123
 
-# ─── COMMON MISTAKES ──────────────────────────────────────────────────────────
-
-# ❌ WRONG - running from outside the project folder:
-#   cd Downloads
-#   python virtuallab_project/manage.py runserver   ← This breaks URL routing
-
-# ✅ CORRECT - always CD into the folder first:
-#   cd Downloads/virtuallab_project
-#   python manage.py runserver
-
-# ─── IF MANAGE.PY SAYS "No module named lab" ──────────────────────────────────
-# You are in the wrong directory. Run:
-#   ls      <- check if you see manage.py here
-#   cd virtuallab_project
-#   python manage.py runserver
-
-# ─── IF PORT 8000 IS BUSY ─────────────────────────────────────────────────────
-# python manage.py runserver 8080
-# Then open: http://127.0.0.1:8080/
