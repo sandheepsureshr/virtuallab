@@ -16,6 +16,8 @@ urlpatterns = [
     path('subjects/', views.subject_list, name='subject_list'),
     path('subject/<int:subject_id>/', views.subject_detail, name='subject_detail'),
     path('subject/<int:subject_id>/enroll/', views.enroll_subject, name='enroll_subject'),
+    path('subject/<int:subject_id>/certificate/', views.certificate_view, name='certificate_view'),
+    path('subject/<int:subject_id>/certificate/download/', views.certificate_pdf, name='certificate_pdf'),
     path('chapter/<int:chapter_id>/', views.chapter_detail, name='chapter_detail'),
     path('topic/<int:topic_id>/viewed/', views.mark_topic_viewed, name='mark_topic_viewed'),
 

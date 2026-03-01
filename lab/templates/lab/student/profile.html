@@ -49,11 +49,33 @@
             <div class="text-muted text-xs">Avg Score</div>
           </div>
           <div style="text-align:center; padding:12px; background:var(--bg2); border-radius:var(--r2);">
-            <div style="font-size:22px; font-weight:800; color:var(--accent2);">0</div>
+            <div style="font-size:22px; font-weight:800; color:var(--accent2);">{{ completed_enrollments|length }}</div>
             <div class="text-muted text-xs">Certificates</div>
           </div>
         </div>
       </div>
+
+      {% if completed_enrollments %}
+      <div class="card mt-4">
+        {% if last_completed %}
+        <p class="text-sm text-muted mb-2">Last completed: <strong>{{ last_completed.subject.title }}</strong> ({{ last_completed.certificate.completed_at|date:"M d, Y" }})</p>
+        {% endif %}
+        <h3 class="section-title">🏅 Completed Courses</h3>
+        <ul style="list-style:none; padding:0;">
+          {% for e in completed_enrollments %}
+          <li style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <strong>{{ e.subject.title }}</strong> – completed {{ e.certificate.completed_at|date:"M d, Y" }} – {{ e.certificate.average_score }}%
+            </div>
+            <div style="display:flex; gap:6px;">
+              <a href="{% url 'certificate_view' e.subject.id %}" class="btn btn-secondary btn-sm">View</a>
+              <a href="{% url 'certificate_pdf' e.subject.id %}" class="btn btn-primary btn-sm">Download</a>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
 
       <!-- Edit Form -->
       <div class="card">

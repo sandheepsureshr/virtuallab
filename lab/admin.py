@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (Subject, Chapter, Topic, QuizQuestion, Enrollment,
-                     ChapterProgress, QuizResult, StudentProfile, Announcement)
+                     ChapterProgress, QuizResult, StudentProfile, Announcement,
+                     Certificate)
 
 
 @admin.register(Subject)
@@ -42,6 +43,12 @@ class QuizResultAdmin(admin.ModelAdmin):
 class StudentProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'institution', 'is_blocked', 'joined_at']
     list_filter = ['is_blocked']
+
+
+@admin.register(Certificate)
+class CertificateAdmin(admin.ModelAdmin):
+    list_display = ['enrollment', 'completed_at', 'average_score']
+    list_filter = ['completed_at']
 
 
 @admin.register(Announcement)

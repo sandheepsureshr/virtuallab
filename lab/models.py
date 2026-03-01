@@ -201,6 +201,112 @@ class StudentProfile(models.Model):
         return round(sum(r.percentage() for r in results) / results.count(), 1)
 
 
+class Certificate(models.Model):
+    """Represents a course completion certificate for a student.
+
+    A certificate is generated when the related enrollment has finished all
+    chapters in the subject and the student's average quiz score is >= 60%.
+    """
+    enrollment = models.OneToOneField(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name='certificate',
+    )
+    completed_at = models.DateTimeField(auto_now_add=True)
+    average_score = models.DecimalField(max_digits=5, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.enrollment.student.username} – {self.enrollment.subject.title}"
+
+    def get_certificate_id(self):
+        """Generate unique cert ID: VRL + 8-digit user ID (e.g., VRL000000064)."""
+        user_id = self.enrollment.student.id
+        return f"VRL{user_id:08d}"
+
+    def get_completion_stats(self):
+        """Return dict of completion statistics for this certificate."""
+        enrollment = self.enrollment
+        chapters = enrollment.subject.chapters.filter(is_active=True).count()
+        completed_chapters = ChapterProgress.objects.filter(
+            enrollment=enrollment, is_completed=True
+        ).count()
+        
+        # total topics across all chapters
+        all_topics = Topic.objects.filter(
+            chapter__subject=enrollment.subject,
+            is_active=True
+        ).count()
+        viewed_topics = ChapterProgress.objects.filter(
+            enrollment=enrollment
+        ).values_list('topics_viewed', flat=True).distinct().count()
+        
+        quiz_results = QuizResult.objects.filter(enrollment=enrollment)
+        total_quizzes = quiz_results.count()
+        passed_quizzes = sum(1 for r in quiz_results if r.passed())
+        
+        return {
+            'total_chapters': chapters,
+            'completed_chapters': completed_chapters,
+            'total_topics': all_topics,
+            'viewed_topics': viewed_topics,
+            'total_quizzes': total_quizzes,
+            'passed_quizzes': passed_quizzes,
+            'avg_quiz_score': round(self.enrollment.average_score(), 1),
+        }
+
+    def generate_pdf(self):
+        """Build a simple PDF version of the certificate and return bytes.
+
+        Uses :mod:`reportlab` so you'll need to add ``reportlab`` to
+        ``requirements.txt`` before migrating.
+        """
+        # import inside method to avoid requiring reportlab unless this is used
+        from io import BytesIO
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.units import inch
+        from reportlab.pdfgen import canvas
+
+        buffer = BytesIO()
+        width, height = letter
+        c = canvas.Canvas(buffer, pagesize=letter)
+
+        # draw decorative border
+        c.setStrokeColorRGB(0.3, 0.5, 1)
+        c.setLineWidth(6)
+        margin = 0.5 * inch
+        c.rect(margin, margin, width - 2 * margin, height - 2 * margin)
+
+        # title
+        c.setFont("Helvetica-Bold", 32)
+        c.drawCentredString(width / 2, height - 2 * inch, "Certificate of Completion")
+
+        # student and course
+        c.setFont("Helvetica", 14)
+        name = self.enrollment.student.get_full_name() or self.enrollment.student.username
+        course = self.enrollment.subject.title
+        c.drawCentredString(width / 2, height - 2.8 * inch, f"This is to certify that {name}")
+        c.drawCentredString(width / 2, height - 3.4 * inch, f"has successfully completed the course")
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(width / 2, height - 4.0 * inch, course)
+
+        # details
+        c.setFont("Helvetica", 12)
+        c.drawCentredString(width / 2, height - 4.8 * inch, f"Completion date: {self.completed_at.strftime('%B %d, %Y')}")
+        c.drawCentredString(width / 2, height - 5.4 * inch, f"Overall score: {self.average_score}%")
+
+        # signature lines
+        c.line(width*0.2, margin + inch, width*0.4, margin + inch)
+        c.drawString(width*0.2, margin + inch - 12, "Instructor")
+        c.line(width*0.6, margin + inch, width*0.8, margin + inch)
+        c.drawString(width*0.6, margin + inch - 12, "Date")
+
+        c.showPage()
+        c.save()
+        pdf = buffer.getvalue()
+        buffer.close()
+        return pdf
+
+
 class Announcement(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()

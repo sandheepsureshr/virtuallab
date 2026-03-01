@@ -5,15 +5,39 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Avg, Count, Q
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 
 from .models import (Subject, Chapter, Topic, QuizQuestion, Enrollment,
-                     ChapterProgress, QuizResult, StudentProfile, Announcement)
+                     ChapterProgress, QuizResult, StudentProfile, Announcement,
+                     Certificate)
 from .forms import (StudentRegistrationForm, SubjectForm, ChapterForm,
                     TopicForm, QuizQuestionForm, ProfileForm, AnnouncementForm)
 from .decorators import admin_required, student_required
+
+
+# helper to create a certificate whenever an enrollment completes all chapters
+
+def ensure_certificate(enrollment):
+    """Generate or update a Certificate record for the given enrollment.
+
+    Certificates are created only when:
+    1. Enrollment has 100% progress (all chapters done)
+    2. Average quiz score is >= 60%
+    """
+    if not enrollment:
+        return
+    # check both conditions
+    if enrollment.progress_percent() == 100 and enrollment.average_score() >= 60:
+        avg = enrollment.average_score()
+        cert, created = Certificate.objects.get_or_create(
+            enrollment=enrollment,
+            defaults={'average_score': avg},
+        )
+        if not created and cert.average_score != avg:
+            cert.average_score = avg
+            cert.save()
 
 
 # ─── Public Views ───────────────────────────────────────────────────────────────
@@ -97,6 +121,7 @@ def student_dashboard(request):
         'completed_chapters': sum(e.completed_chapters() for e in enrollments),
         'total_quizzes': QuizResult.objects.filter(enrollment__student=request.user).count(),
         'avg_score': request.user.profile.overall_average() if hasattr(request.user, 'profile') else 0,
+        'certificates': Certificate.objects.filter(enrollment__student=request.user).count(),
     }
 
     context = {
@@ -127,7 +152,25 @@ def student_profile(request):
             'last_name': request.user.last_name,
             'email': request.user.email,
         })
-    return render(request, 'lab/student/profile.html', {'form': form, 'profile': profile})
+
+    # compile list of completed enrollments for certificates
+    completed_enrollments = []
+    for e in Enrollment.objects.filter(student=request.user, is_active=True):
+        if e.progress_percent() == 100:
+            completed_enrollments.append(e)
+
+    completed_enrollments.sort(
+        key=lambda e: e.certificate.completed_at if hasattr(e, 'certificate') else timezone.now(),
+        reverse=True,
+    )
+    last_completed = completed_enrollments[0] if completed_enrollments else None
+
+    return render(request, 'lab/student/profile.html', {
+        'form': form,
+        'profile': profile,
+        'completed_enrollments': completed_enrollments,
+        'last_completed': last_completed,
+    })
 
 
 @student_required
@@ -180,10 +223,15 @@ def subject_detail(request, subject_id):
             'index': i + 1,
         })
 
+    certificate = None
+    if enrollment and hasattr(enrollment, 'certificate'):
+        certificate = enrollment.certificate
+
     return render(request, 'lab/student/subject_detail.html', {
         'subject': subject,
         'enrollment': enrollment,
         'chapter_data': chapter_data,
+        'certificate': certificate,
     })
 
 
@@ -310,10 +358,18 @@ def mark_topic_viewed(request, topic_id):
     viewed = progress.topics_viewed.count()
     quiz_result = QuizResult.objects.filter(enrollment=enrollment, chapter=topic.chapter).first()
 
-    if viewed >= total_topics and quiz_result and quiz_result.passed() and not progress.is_completed:
+    # determine whether quiz requirement is satisfied (chapters w/o quiz are
+    # auto-passed)
+    chapter = topic.chapter
+    has_quiz = chapter.has_quiz()
+    passed_quiz = (quiz_result and quiz_result.passed()) or (not has_quiz)
+
+    if viewed >= total_topics and passed_quiz and not progress.is_completed:
         progress.is_completed = True
         progress.completed_at = timezone.now()
         progress.save()
+        # once a chapter gets marked complete we may have finished the course
+        ensure_certificate(enrollment)
 
     # Check if this is an AJAX request
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -411,6 +467,8 @@ def submit_quiz(request, chapter_id):
         progress.completed_at = timezone.now()
         progress.save()
         messages.success(request, f'Congratulations! You passed with {result.percentage()}%!')
+        # check for course completion
+        ensure_certificate(enrollment)
     else:
         messages.warning(request, f'You scored {result.percentage()}%. Need 60% to pass. Try again!')
 
@@ -435,6 +493,64 @@ def quiz_result_detail(request, result_id):
         'result': result,
         'question_results': question_results,
     })
+
+
+@student_required
+def certificate_view(request, subject_id):
+    """Display certificate details for a completed subject."""
+    subject = get_object_or_404(Subject, id=subject_id, is_active=True)
+    enrollment = get_object_or_404(Enrollment, student=request.user, subject=subject, is_active=True)
+    cert = getattr(enrollment, 'certificate', None)
+    if not cert:
+        messages.error(request, 'Certificate not available yet.')
+        return redirect('subject_detail', subject_id=subject_id)
+    
+    stats = cert.get_completion_stats()
+    
+    return render(request, 'lab/student/certificate.html', {
+        'enrollment': enrollment,
+        'certificate': cert,
+        'stats': stats,
+    })
+
+
+@student_required
+def certificate_pdf(request, subject_id):
+    """Render the certificate page as a PDF using WeasyPrint.
+
+    This will produce a faithful copy of the HTML template including all
+    CSS decorations.  If WeasyPrint isn't installed, fall back to the
+    simple ReportLab generator in the model.
+    """
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+
+    subject = get_object_or_404(Subject, id=subject_id, is_active=True)
+    enrollment = get_object_or_404(Enrollment, student=request.user, subject=subject, is_active=True)
+    cert = getattr(enrollment, 'certificate', None)
+    if not cert:
+        raise Http404
+
+    filename = f"{subject.title.replace(' ', '_')}-certificate.pdf"
+    stats = cert.get_completion_stats()
+
+    try:
+        # try HTML->PDF conversion for full styling
+        from weasyprint import HTML
+        html_string = render_to_string('lab/student/certificate.html', {
+            'enrollment': enrollment,
+            'certificate': cert,
+            'stats': stats,
+            'request': request,  # ensure site_name etc available
+        })
+        pdf_bytes = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+    except ImportError:
+        # backup to the old reportlab method
+        pdf_bytes = cert.generate_pdf()
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 # ─── Admin Views ─────────────────────────────────────────────────────────────────

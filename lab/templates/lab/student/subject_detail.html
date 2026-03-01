@@ -67,6 +67,10 @@
             <h1 style="font-size:26px; font-weight:800;">{{ subject.title }}</h1>
             <span class="badge badge-purple">{{ subject.category }}</span>
             {% if enrollment %}<span class="badge badge-green">✓ Enrolled</span>{% endif %}
+            {% if certificate %}
+              <a href="{% url 'certificate_view' subject.id %}" class="btn btn-secondary btn-sm ml-2">View Certificate</a>
+              
+            {% endif %}
           </div>
           <p style="color:var(--text2); margin-bottom:16px;">{{ subject.description }}</p>
           <div class="flex items-center gap-3 flex-wrap text-sm text-muted">
