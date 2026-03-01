@@ -12,10 +12,10 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Filter by Category</div>
-      <a href="?cat=" class="sidebar-link {% if not request.GET.cat %}active{% endif %}"><span class="icon">🌐</span> All Categories</a>
-      <a href="?cat=programming" class="sidebar-link"><span class="icon">💻</span> Programming</a>
-      <a href="?cat=database" class="sidebar-link"><span class="icon">🗄️</span> Database</a>
-      <a href="?cat=algorithms" class="sidebar-link"><span class="icon">⚙️</span> Algorithms</a>
+      <a href="?cat=" class="sidebar-link {% if not selected_category %}active{% endif %}"><span class="icon">🌐</span> All Categories</a>
+      <a href="?cat=programming" class="sidebar-link {% if selected_category == 'programming' %}active{% endif %}"><span class="icon">💻</span> Programming</a>
+      <a href="?cat=database" class="sidebar-link {% if selected_category == 'database' %}active{% endif %}"><span class="icon">🗄️</span> Database</a>
+      <a href="?cat=algorithms" class="sidebar-link {% if selected_category == 'algorithms' %}active{% endif %}"><span class="icon">⚙️</span> Algorithms</a>
     </div>
   </div>
 
@@ -32,9 +32,13 @@
       {% for subject in subjects %}
       <div class="subject-card" style="text-decoration:none; display:block;">
         <div class="subject-card-header" style="background: linear-gradient(135deg, {{ subject.color }}33, {{ subject.color }}66);">
-          <span style="font-size:42px;">
-            {% if subject.icon == 'database' %}🗄️{% elif subject.icon == 'code' %}💻{% elif subject.icon == 'cpu' %}⚙️{% elif subject.icon == 'network' %}🌐{% else %}📚{% endif %}
-          </span>
+          {% if subject.thumbnail %}
+            <img src="{{ subject.thumbnail.url }}" style="width:100%; height:100%; object-fit:cover;" alt="{{ subject.title }}">
+          {% else %}
+            <span style="font-size:42px;">
+              {% if subject.icon == 'database' %}🗄️{% elif subject.icon == 'code' %}💻{% elif subject.icon == 'cpu' %}⚙️{% elif subject.icon == 'network' %}🌐{% else %}📚{% endif %}
+            </span>
+          {% endif %}
           {% if subject.id in enrolled_ids %}
             <span class="badge badge-green" style="position:absolute; top:12px; right:12px;">✓ Enrolled</span>
           {% endif %}

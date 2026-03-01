@@ -133,11 +133,17 @@ def student_profile(request):
 @student_required
 def subject_list(request):
     subjects = Subject.objects.filter(is_active=True)
+    
+    # Filter by category if provided
+    category = request.GET.get('cat', '')
+    if category:
+        subjects = subjects.filter(category=category)
+    
     enrolled_ids = Enrollment.objects.filter(
         student=request.user, is_active=True
     ).values_list('subject_id', flat=True)
     return render(request, 'lab/student/subject_list.html', {
-        'subjects': subjects, 'enrolled_ids': list(enrolled_ids)
+        'subjects': subjects, 'enrolled_ids': list(enrolled_ids), 'selected_category': category
     })
 
 

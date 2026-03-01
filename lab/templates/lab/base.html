@@ -531,18 +531,25 @@
 {% block body %}{% endblock %}
 
 <script>
-  // Auto-dismiss messages
+  // Auto-dismiss messages (but NOT announcements)
   setTimeout(() => {
     document.querySelectorAll('.alert').forEach(el => {
-      el.style.transition = 'opacity 0.5s';
-      el.style.opacity = '0';
-      setTimeout(() => el.remove(), 500);
+      // Skip announcements - only dismiss message alerts
+      if (!el.closest('[data-announcement]')) {
+        el.style.transition = 'opacity 0.5s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 500);
+      }
     });
   }, 4000);
 
-  // Active sidebar links
+  // Active sidebar links - improved matching
   document.querySelectorAll('.sidebar-link').forEach(link => {
-    if (link.href === window.location.href) {
+    const linkPath = new URL(link.href).pathname;
+    const currentPath = window.location.pathname;
+    
+    // Exact path match or when current path starts with link path
+    if (currentPath === linkPath || currentPath.startsWith(linkPath + '/')) {
       link.classList.add('active');
     }
   });

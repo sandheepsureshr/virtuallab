@@ -53,9 +53,15 @@
     <!-- Subject Header -->
     <div class="card mb-3" style="background: linear-gradient(135deg, {{ subject.color }}15, var(--card));">
       <div class="flex items-start gap-3 flex-wrap">
+        {% if subject.thumbnail %}
+        <div style="width:120px; height:120px; border-radius:14px; flex-shrink:0; border:2px solid {{ subject.color }}44; overflow:hidden;">
+          <img src="{{ subject.thumbnail.url }}" style="width:100%; height:100%; object-fit:cover;" alt="{{ subject.title }}">
+        </div>
+        {% else %}
         <div style="width:64px; height:64px; border-radius:14px; background:{{ subject.color }}22; display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; border:2px solid {{ subject.color }}44;">
           {% if subject.icon == 'database' %}🗄️{% elif subject.icon == 'code' %}💻{% elif subject.icon == 'cpu' %}⚙️{% elif subject.icon == 'network' %}🌐{% else %}📚{% endif %}
         </div>
+        {% endif %}
         <div style="flex:1;">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <h1 style="font-size:26px; font-weight:800;">{{ subject.title }}</h1>
