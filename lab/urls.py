@@ -53,4 +53,7 @@ urlpatterns = [
 
     path('admin-panel/analytics/', views.admin_analytics, name='admin_analytics'),
     path('admin-panel/announcements/', views.admin_announcements, name='admin_announcements'),
+
+    # Chatbot API
+    path('api/chatbot/', views.chatbot_api, name='chatbot_api'),
 ]

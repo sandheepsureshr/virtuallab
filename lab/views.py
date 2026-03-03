@@ -734,3 +734,68 @@ def admin_announcements(request):
     return render(request, 'lab/admin/announcements.html', {
         'announcements': announcements, 'form': form
     })
+
+
+# ─── Chatbot API ───────────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def chatbot_api(request):
+    """
+    API endpoint to handle chatbot messages securely.
+    Proxies requests to Gemini API while keeping the API key safe on the backend.
+    """
+    import json
+    import requests
+    from django.conf import settings
+    
+    try:
+        data = json.loads(request.body)
+        user_message = data.get('message', '').strip()
+        
+        if not user_message:
+            return JsonResponse({'error': 'Message is required'}, status=400)
+        
+        # Call Gemini API
+        headers = {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': settings.GEMINI_API_KEY,
+        }
+        
+        payload = {
+            'contents': [
+                {
+                    'parts': [
+                        {
+                            'text': user_message
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(
+            settings.GEMINI_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            # Extract the generated text from the response
+            if 'candidates' in result and len(result['candidates']) > 0:
+                candidate = result['candidates'][0]
+                if 'content' in candidate and 'parts' in candidate['content']:
+                    text = candidate['content']['parts'][0].get('text', '')
+                    return JsonResponse({'response': text})
+            return JsonResponse({'error': 'No response generated'}, status=500)
+        else:
+            return JsonResponse({'error': 'API request failed'}, status=response.status_code)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except requests.RequestException as e:
+        return JsonResponse({'error': f'Request failed: {str(e)}'}, status=500)
+    except Exception as e:
+        return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
