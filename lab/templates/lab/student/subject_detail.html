@@ -72,7 +72,12 @@
           <div class="flex items-center gap-3 flex-wrap text-sm text-muted">
             <span>📖 {{ subject.total_chapters }} chapters</span>
             <span>👥 {{ subject.enrolled_count }} students</span>
-            {% if enrollment %}<span>🏆 Avg score: {{ enrollment.average_score }}%</span>{% endif %}
+            {% if enrollment %}
+            <!-- <span>🏆 Your avg score: {{ enrollment.average_score }}%</span> -->
+            {% endif %}
+            {% if subject_avg_score is not None %}
+            <!-- <span>🏆 Course avg: {{ subject_avg_score }}%</span> -->
+            {% endif %}
           </div>
         </div>
         <div>

@@ -1,63 +1,54 @@
 /**
  * VirtualLab Chatbot Widget
- * A floating chatbot widget for student assistance
+ * Clean, simple chatbot for student assistance
  */
 
 class ChatbotWidget {
   constructor() {
     this.isOpen = false;
-    this.messages = [];
     this.isLoading = false;
+    this.messageHistory = [];
     this.init();
   }
 
   init() {
-    this.createWidget();
-    this.attachEventListeners();
+    this.createDOM();
+    this.attachListeners();
   }
 
-  createWidget() {
-    // Create container
+  createDOM() {
     const container = document.createElement('div');
-    container.id = 'chatbot-widget';
-    container.className = 'chatbot-widget';
+    container.id = 'chatbot-container';
     container.innerHTML = `
-      <div class="chatbot-button" id="chatbot-toggle" title="Open Chatbot">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-      </div>
-      
-      <div class="chatbot-window" id="chatbot-window">
-        <div class="chatbot-header">
-          <div class="chatbot-title">Chat with VirtualLab</div>
-          <button id="chatbot-close" class="chatbot-close" title="Close chatbot">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
+      <style>
+        ${this.getStyles()}
+      </style>
+      <div id="chatbot-widget">
+        <button id="chatbot-btn" class="chatbot-btn" title="Open chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
         
-        <div class="chatbot-messages" id="chatbot-messages">
-          <div class="message bot-message">
-            <div class="message-content">
-              👋 Hi! I'm your AI Assistant. How can I help you today?
+        <div id="chatbot-panel" class="chatbot-panel hidden">
+          <div class="chatbot-header">
+            <h3>Chat with AI</h3>
+            <button id="chatbot-close" class="close-btn">&times;</button>
+          </div>
+          <div id="chatbot-messages" class="chatbot-messages">
+            <div class="message bot-msg">
+              <div class="msg-text">Hi! How can I help you today? 👋</div>
             </div>
           </div>
-        </div>
-        
-        <div class="chatbot-input-area">
           <form id="chatbot-form" class="chatbot-form">
             <input 
               type="text" 
               id="chatbot-input" 
-              class="chatbot-input" 
               placeholder="Ask me anything..."
               autocomplete="off"
-            >
-            <button type="submit" class="chatbot-send" id="chatbot-send" title="Send message">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            />
+            <button type="submit" class="send-btn" title="Send">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
                 <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
               </svg>
@@ -66,163 +57,279 @@ class ChatbotWidget {
         </div>
       </div>
     `;
-    
     document.body.appendChild(container);
   }
 
-  attachEventListeners() {
-    const toggleBtn = document.getElementById('chatbot-toggle');
+  getStyles() {
+    return `
+      #chatbot-widget {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        z-index: 9999;
+      }
+
+      .chatbot-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4f7aff, #7c5cfc);
+        border: none;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(79, 122, 255, 0.4);
+        transition: all 0.3s;
+      }
+
+      .chatbot-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(79, 122, 255, 0.5);
+      }
+
+      .chatbot-btn svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .chatbot-btn.hidden {
+        display: none;
+      }
+
+      .chatbot-panel {
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 360px;
+        height: 500px;
+        background: #0f1525;
+        border: 1px solid #252d45;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        opacity: 1;
+        transform: scale(1);
+        transform-origin: bottom right;
+        transition: all 0.3s ease;
+      }
+
+      .chatbot-panel.hidden {
+        opacity: 0;
+        transform: scale(0.8);
+        pointer-events: none;
+      }
+
+      .chatbot-header {
+        padding: 16px;
+        border-bottom: 1px solid #252d45;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(79, 122, 255, 0.05);
+      }
+
+      .chatbot-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #e8ecf4;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        color: #9ba3bb;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+      }
+
+      .close-btn:hover {
+        color: #e8ecf4;
+      }
+
+      .chatbot-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .chatbot-messages::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .chatbot-messages::-webkit-scrollbar-thumb {
+        background: #252d45;
+        border-radius: 2px;
+      }
+
+      .message {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .user-msg {
+        justify-content: flex-end;
+      }
+
+      .bot-msg {
+        justify-content: flex-start;
+      }
+
+      .msg-text {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        line-height: 1.5;
+        font-size: 14px;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
+
+      .user-msg .msg-text {
+        background: linear-gradient(135deg, #4f7aff, #7c5cfc);
+        color: white;
+        border-radius: 12px 4px 12px 12px;
+      }
+
+      .bot-msg .msg-text {
+        background: #1c2338;
+        color: #e8ecf4;
+        border: 1px solid #252d45;
+        border-radius: 4px 12px 12px 12px;
+      }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .loading-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #4f7aff;
+        animation: bounce 1.4s infinite;
+      }
+
+      .loading-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .loading-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .chatbot-form {
+        padding: 12px;
+        border-top: 1px solid #252d45;
+        display: flex;
+        gap: 8px;
+      }
+
+      #chatbot-input {
+        flex: 1;
+        background: #141929;
+        border: 1px solid #252d45;
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: #e8ecf4;
+        font-size: 14px;
+        font-family: inherit;
+      }
+
+      #chatbot-input:focus {
+        outline: none;
+        border-color: #4f7aff;
+        box-shadow: 0 0 0 2px rgba(79, 122, 255, 0.1);
+      }
+
+      #chatbot-input::placeholder {
+        color: #636b85;
+      }
+
+      .send-btn {
+        background: linear-gradient(135deg, #4f7aff, #7c5cfc);
+        border: none;
+        border-radius: 8px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+
+      .send-btn:hover:not(:disabled) {
+        transform: scale(1.05);
+      }
+
+      .send-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .send-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      @media (max-width: 480px) {
+        .chatbot-panel {
+          width: calc(100vw - 32px);
+          max-width: 360px;
+        }
+      }
+    `;
+  }
+
+  attachListeners() {
+    const btn = document.getElementById('chatbot-btn');
     const closeBtn = document.getElementById('chatbot-close');
     const form = document.getElementById('chatbot-form');
-    const input = document.getElementById('chatbot-input');
-
-    toggleBtn.addEventListener('click', () => this.toggle());
+    
+    btn.addEventListener('click', () => this.toggle());
     closeBtn.addEventListener('click', () => this.close());
     form.addEventListener('submit', (e) => this.handleSubmit(e));
   }
 
   toggle() {
-    if (this.isOpen) {
-      this.close();
-    } else {
-      this.open();
-    }
+    this.isOpen ? this.close() : this.open();
   }
 
   open() {
-    const widget = document.getElementById('chatbot-widget');
-    const window = document.getElementById('chatbot-window');
     this.isOpen = true;
-    
-    widget.classList.add('open');
-    window.classList.add('show');
-    
-    // Focus on input
-    setTimeout(() => {
-      document.getElementById('chatbot-input').focus();
-    }, 200);
+    document.getElementById('chatbot-btn').classList.add('hidden');
+    document.getElementById('chatbot-panel').classList.remove('hidden');
+    document.getElementById('chatbot-input').focus();
   }
 
   close() {
-    const widget = document.getElementById('chatbot-widget');
-    const window = document.getElementById('chatbot-window');
     this.isOpen = false;
-    
-    widget.classList.remove('open');
-    window.classList.remove('show');
-  }
-
-  async handleSubmit(e) {
-    e.preventDefault();
-    
-    const input = document.getElementById('chatbot-input');
-    const sendBtn = document.getElementById('chatbot-send');
-    const message = input.value.trim();
-    
-    if (!message) return;
-    if (this.isLoading) return;
-
-    // Add user message and clear field
-    this.addMessage(message, 'user');
-    input.value = '';
-
-    // show loading placeholder and disable input/buttons
-    this.showLoading();
-    input.disabled = true;
-    sendBtn.disabled = true;
-
-    this.isLoading = true;
-    
-    try {
-      // Get CSRF token
-      const csrfToken = this.getCookie('csrftoken');
-      
-      const response = await fetch('/api/chatbot/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-        },
-        body: JSON.stringify({ message }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to get response');
-      }
-
-      const data = await response.json();
-      this.hideLoading();
-      this.addMessage(data.response, 'bot');
-    } catch (error) {
-      console.error('Chatbot error:', error);
-      this.hideLoading();
-      this.addMessage(
-        '❌ Sorry, I encountered an error. Please try again later.',
-        'bot'
-      );
-    } finally {
-      this.isLoading = false;
-      input.disabled = false;
-      sendBtn.disabled = false;
-      input.focus();
-    }
-  }
-
-  addMessage(text, sender) {
-    const messagesContainer = document.getElementById('chatbot-messages');
-    
-    const messageEl = document.createElement('div');
-    messageEl.className = `message ${sender}-message`;
-    
-    const contentEl = document.createElement('div');
-    contentEl.className = 'message-content';
-    
-    // Parse text as markdown-like content for better formatting
-    contentEl.innerHTML = this.formatMessage(text);
-    
-    messageEl.appendChild(contentEl);
-    messagesContainer.appendChild(messageEl);
-    
-    // Always scroll new message into view
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }
-
-  showLoading() {
-    const messagesContainer = document.getElementById('chatbot-messages');
-    // create placeholder message
-    const loadingEl = document.createElement('div');
-    loadingEl.className = 'message bot-message loading';
-
-    const contentEl = document.createElement('div');
-    contentEl.className = 'message-content';
-    contentEl.innerHTML = '<div class="loading-spinner"></div>';
-
-    loadingEl.appendChild(contentEl);
-    messagesContainer.appendChild(loadingEl);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    this.loadingEl = loadingEl;
-  }
-
-  hideLoading() {
-    if (this.loadingEl) {
-      this.loadingEl.remove();
-      this.loadingEl = null;
-    }
-  }
-
-  formatMessage(text) {
-    // Simple formatting for better readability
-    // Bold text: **text** -> <strong>text</strong>
-    // Italic text: *text* -> <em>text</em>
-    // Line breaks
-    
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>')
-      .replace(/\n\n/g, '<br><br>');
+    document.getElementById('chatbot-btn').classList.remove('hidden');
+    document.getElementById('chatbot-panel').classList.add('hidden');
   }
 
   getCookie(name) {
@@ -231,7 +338,7 @@ class ChatbotWidget {
       const cookies = document.cookie.split(';');
       for (let i = 0; i < cookies.length; i++) {
         const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === name + '=') {
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
           cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
           break;
         }
@@ -239,13 +346,145 @@ class ChatbotWidget {
     }
     return cookieValue;
   }
+
+  async handleSubmit(e) {
+    e.preventDefault();
+    
+    const input = document.getElementById('chatbot-input');
+    const form = document.getElementById('chatbot-form');
+    const message = input.value.trim();
+    
+    if (!message || this.isLoading) return;
+
+    // Disable form
+    this.isLoading = true;
+    input.disabled = true;
+    form.querySelector('.send-btn').disabled = true;
+
+    // Add user message
+    this.addMessage(message, 'user');
+    input.value = '';
+
+    // Show loading
+    const loadingId = this.showLoading();
+
+    try {
+      const csrftoken = this.getCookie('csrftoken');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add CSRF token if available
+      if (csrftoken) {
+        headers['X-CSRFToken'] = csrftoken;
+      }
+
+      const response = await fetch('/api/chatbot/', {
+        method: 'POST',
+        headers: headers,
+        credentials: 'same-origin',
+        body: JSON.stringify({ message })
+      });
+
+      // If the server returned non-JSON (e.g. a login page HTML), avoid parsing as JSON
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        // Remove loading indicator
+        document.getElementById(loadingId)?.remove();
+
+        // Likely redirected to login page (302 -> HTML response)
+        const loginUrl = response.url && response.url.includes('/login') ? response.url : '/login/';
+        this.addHtmlMessage(`🔒 You must be logged in to use the chat. <a href="${loginUrl}" target="_blank" rel="noopener">Log in</a>`, 'bot');
+
+        return;
+      }
+
+      const data = await response.json();
+
+      // Remove loading indicator
+      document.getElementById(loadingId)?.remove();
+
+      if (!response.ok) {
+        let errorMsg = data.error || 'Failed to get response';
+        if (response.status === 429) {
+          errorMsg = `⏳ ${data.error}`;
+        }
+        this.addMessage(`${errorMsg}`, 'bot');
+        return;
+      }
+
+      if (data.response) {
+        this.addMessage(data.response, 'bot');
+      }
+    } catch (error) {
+      document.getElementById(loadingId)?.remove();
+      this.addMessage(`❌ Network error: ${error.message}`, 'bot');
+      console.error('Chatbot error:', error);
+    } finally {
+      this.isLoading = false;
+      input.disabled = false;
+      form.querySelector('.send-btn').disabled = false;
+      input.focus();
+      this.scrollToBottom();
+    }
+  }
+
+  addMessage(text, sender) {
+    const container = document.getElementById('chatbot-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${sender}-msg`;
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'msg-text';
+    textDiv.textContent = text;
+
+    msgDiv.appendChild(textDiv);
+    container.appendChild(msgDiv);
+    this.scrollToBottom();
+  }
+
+  // Add an HTML message (allows links/buttons inside chat for login)
+  addHtmlMessage(html, sender) {
+    const container = document.getElementById('chatbot-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${sender}-msg`;
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'msg-text';
+    textDiv.innerHTML = html;
+
+    msgDiv.appendChild(textDiv);
+    container.appendChild(msgDiv);
+    this.scrollToBottom();
+  }
+
+  showLoading() {
+    const id = `loading-${Date.now()}`;
+    const container = document.getElementById('chatbot-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.id = id;
+    msgDiv.className = 'message bot-msg';
+
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading';
+    loadingDiv.innerHTML = '<div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>';
+
+    msgDiv.appendChild(loadingDiv);
+    container.appendChild(msgDiv);
+    this.scrollToBottom();
+    return id;
+  }
+
+  scrollToBottom() {
+    const container = document.getElementById('chatbot-messages');
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
-// Initialize chatbot when DOM is ready
+// Initialize when DOM ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new ChatbotWidget();
-  });
+  document.addEventListener('DOMContentLoaded', () => new ChatbotWidget());
 } else {
   new ChatbotWidget();
 }
+

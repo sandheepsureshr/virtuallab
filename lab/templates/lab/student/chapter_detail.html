@@ -246,6 +246,11 @@
       <div style="margin-top:20px; text-align:right;">
         <div id="completion-actions" style="display: flex; gap: 12px; justify-content: flex-end; align-items: center;">
           <!-- DEBUG: current_topic.is_viewed = {{ current_topic.is_viewed }}, topic_id = {{ current_topic.topic.id }}, index = {{ current_topic.index }} -->
+          {% if current_topic.is_viewed and quiz_pending and topics_remaining %}
+          <div class="alert alert-warning" style="width:100%; margin-bottom:12px;">
+            You need to finish the chapter quiz before moving on to the next topic.
+          </div>
+      {% endif %}
           {% if not current_topic.is_viewed %}
           <!-- DEBUG: Showing form for incomplete topic -->
           <form method="post" action="{% url 'mark_topic_viewed' current_topic.topic.id %}" style="display: inline;">
@@ -260,7 +265,14 @@
           <button class="btn btn-success btn-sm" id="viewed-btn" disabled style="opacity:0.6;">
             ✓ Completed
           </button>
+          {% if not chapter.has_quiz %}
+          {# nothing extra, no quiz to take #}
+          {% else %}
           <a href="{% url 'take_quiz' chapter.id %}" class="btn btn-primary btn-sm">Take Quiz 📝</a>
+          {% endif %}
+          {% if progress.is_completed and next_chapter %}
+          <a href="{% url 'chapter_detail' next_chapter.id %}" class="btn btn-success btn-sm">Next Chapter →</a>
+          {% endif %}
           {% endif %}
         </div>
       </div>
@@ -269,9 +281,24 @@
     <div class="empty-state">
       <div class="empty-icon">🎉</div>
       <h3 class="empty-title">All topics completed!</h3>
+      {% if not chapter.has_quiz %}
+      <p class="empty-desc">You've finished all topics in this chapter. This chapter has no quiz, so it's automatically completed and the next chapter is unlocked.</p>
+      {% else %}
       <p class="empty-desc">You've finished all topics in this chapter. Take the quiz to complete it and unlock the next chapter.</p>
+      {% endif %}
+      <p class="text-sm text-dim mt-3">You can still revisit any topic – just click it in the sidebar.</p>
       <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        {# if the user has completed the chapter already we offer a direct link to the next one #}
+        {% if progress.is_completed and next_chapter %}
+        <a href="{% url 'chapter_detail' next_chapter.id %}" class="btn btn-success">Next Chapter →</a>
+        {% endif %}
+
+        {% if not chapter.has_quiz %}
+        <span class="text-muted" style="align-self:center; font-size:12px;">No quiz for this chapter</span>
+        {% else %}
         <a href="{% url 'take_quiz' chapter.id %}" class="btn btn-primary">Take Quiz 📝</a>
+        {% endif %}
+
         <a href="{% url 'subject_detail' subject.id %}" class="btn btn-outline">Back to Course</a>
       </div>
     </div>
@@ -286,6 +313,35 @@
   </div>
 </div>
 {% endblock %}
+
+<!-- Completion modal -->
+{% if show_chapter_modal %}
+<div id="chapterCompleteModal" class="modal-overlay">
+  <div class="modal-content">
+    {% if show_course_modal %}
+    <h2>🎓 Course Completed!</h2>
+    <p>You've finished the last chapter of the course. Congratulations!</p>
+    <div class="flex gap-2 justify-center mt-4">
+      <a href="{% url 'subject_list' %}" class="btn btn-success">Browse More Courses</a>
+      <a href="{% url 'dashboard' %}" class="btn btn-outline">Go to Dashboard</a>
+    </div>
+    {% else %}
+    <h2>Chapter Completed!</h2>
+    <p>Well done, you've finished this chapter.</p>
+    <div class="flex gap-2 justify-center mt-4">
+      {% if next_chapter %}
+      <a href="{% url 'chapter_detail' next_chapter.id %}" class="btn btn-success">Next Chapter</a>
+      {% endif %}
+      <a href="{% url 'subject_detail' subject.id %}" class="btn btn-outline">Back to Course</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<style>
+.modal-overlay { position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000; }
+.modal-content { background:#fff; padding:24px; border-radius:8px; max-width:400px; text-align:center; }
+</style>
+{% endif %}
 
 {% block scripts %}
 <script>
@@ -354,6 +410,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const currentTopicIndex = {% if current_topic %}{{ current_topic.index }}{% else %}-1{% endif %};
   if (currentTopicIndex >= 0) {
     updateSidebarHighlight(currentTopicIndex);
+  }
+  const modal = document.getElementById('chapterCompleteModal');
+  if (modal) {
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
   }
 });
 </script>

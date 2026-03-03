@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Avg, Count, Q
@@ -158,19 +160,22 @@ def subject_detail(request, subject_id):
     for i, chapter in enumerate(chapters):
         progress = None
         quiz_result = None
-        is_unlocked = (i == 0)  # First chapter always unlocked
+        # by default only the first chapter is unlocked
+        is_unlocked = (i == 0)
 
         if enrollment:
             progress = ChapterProgress.objects.filter(enrollment=enrollment, chapter=chapter).first()
             quiz_result = QuizResult.objects.filter(enrollment=enrollment, chapter=chapter).first()
 
-            # Unlock if previous chapter quiz was passed
+            # previous chapter is considered "completed" either when the
+            # related ChapterProgress flag is set or in the absence of a quiz
+            # it is unlocked automatically once topics are viewed.
             if i > 0:
                 prev_chapter = chapters[i - 1]
-                prev_result = QuizResult.objects.filter(
+                prev_progress = ChapterProgress.objects.filter(
                     enrollment=enrollment, chapter=prev_chapter
                 ).first()
-                is_unlocked = prev_result is not None and prev_result.passed()
+                is_unlocked = prev_progress is not None and prev_progress.is_completed
 
         chapter_data.append({
             'chapter': chapter,
@@ -180,10 +185,20 @@ def subject_detail(request, subject_id):
             'index': i + 1,
         })
 
+    # compute overall course average (percentage) for display
+    subject_avg_score = 0
+    all_results = QuizResult.objects.filter(chapter__subject=subject)
+    if all_results.exists():
+        total_score = sum(r.score for r in all_results)
+        total_marks = sum(r.total_marks for r in all_results)
+        if total_marks > 0:
+            subject_avg_score = round((total_score / total_marks) * 100, 1)
+
     return render(request, 'lab/student/subject_detail.html', {
         'subject': subject,
         'enrollment': enrollment,
         'chapter_data': chapter_data,
+        'subject_avg_score': subject_avg_score,
     })
 
 
@@ -217,8 +232,11 @@ def chapter_detail(request, chapter_id):
 
     if chapter_index > 0:
         prev_chapter = chapters[chapter_index - 1]
-        prev_result = QuizResult.objects.filter(enrollment=enrollment, chapter=prev_chapter).first()
-        is_unlocked = prev_result is not None and prev_result.passed()
+        prev_progress = ChapterProgress.objects.filter(enrollment=enrollment, chapter=prev_chapter).first()
+        # unlock if previous chapter has been marked completed (this covers the
+        # case where there is no quiz because the progress flag will be set by
+        # the topic completion logic)
+        is_unlocked = prev_progress is not None and prev_progress.is_completed
 
     if not is_unlocked:
         messages.warning(request, 'Complete the previous chapter quiz to unlock this chapter.')
@@ -227,16 +245,29 @@ def chapter_detail(request, chapter_id):
     progress, _ = ChapterProgress.objects.get_or_create(enrollment=enrollment, chapter=chapter)
     topics = chapter.topics.filter(is_active=True).order_by('order')
     
+    # if there are no topics at all we can immediately mark the chapter as
+    # complete; this is important for chapters that consist only of a quiz or
+    # are placeholders with neither form of content.
+    if topics.count() == 0 and not progress.is_completed:
+        progress.is_completed = True
+        progress.completed_at = timezone.now()
+        progress.save()
+
     # Determine unlocked topics - sequential unlocking
     topic_data = []
     viewed_topic_ids = set(progress.topics_viewed.values_list('id', flat=True))
     
     for i, topic in enumerate(topics):
-        is_topic_unlocked = (i == 0)  # First topic always unlocked
-        if i > 0:
-            # Unlock only if previous topic is viewed
-            prev_topic = topics[i - 1]
-            is_topic_unlocked = prev_topic.id in viewed_topic_ids
+        # if the topic has been viewed previously, always let the student open it
+        if topic.id in viewed_topic_ids:
+            is_topic_unlocked = True
+        else:
+            # otherwise unlock sequentially based on the previous topic
+            if i == 0:
+                is_topic_unlocked = True
+            else:
+                prev_topic = topics[i - 1]
+                is_topic_unlocked = prev_topic.id in viewed_topic_ids
         
         topic_data.append({
             'topic': topic,
@@ -269,9 +300,38 @@ def chapter_detail(request, chapter_id):
                 if item['is_unlocked'] and not item['is_viewed']:
                     current_topic = item
                     break
-        # If all topics are viewed, current_topic remains None (will show completion message)
+        else:
+            # chapter is done; default to the first topic so student can reread
+            if topic_data:
+                current_topic = topic_data[0]
     
     quiz_result = QuizResult.objects.filter(enrollment=enrollment, chapter=chapter).first()
+
+    # helper flags used by template
+    quiz_pending = False
+    if chapter.has_quiz():
+        quiz_pending = not quiz_result or not quiz_result.passed()
+
+    topics_remaining = False
+    if current_topic is not None:
+        topics_remaining = current_topic['index'] < len(topic_data) - 1
+
+    # show a modal if the request indicated we just completed the chapter
+    show_chapter_modal = request.GET.get('completed') == '1'
+
+    # determine if this is the final chapter in the subject
+    subject_chapters = list(chapter.subject.chapters.filter(is_active=True).order_by('order'))
+    is_last_chapter = bool(subject_chapters and subject_chapters[-1].id == chapter.id)
+    show_course_modal = show_chapter_modal and is_last_chapter
+
+    # figure out next chapter for convenience links
+    next_chapter = None
+    if chapter_index is not None and chapter_index < len(chapters) - 1:
+        candidate = chapters[chapter_index + 1]
+        prev_progress = progress
+        # use completion flag to determine unlock (covers no-quiz case)
+        if prev_progress.is_completed:
+            next_chapter = candidate
 
     return render(request, 'lab/student/chapter_detail.html', {
         'chapter': chapter,
@@ -281,6 +341,11 @@ def chapter_detail(request, chapter_id):
         'quiz_result': quiz_result,
         'enrollment': enrollment,
         'subject': chapter.subject,
+        'next_chapter': next_chapter,
+        'quiz_pending': quiz_pending,
+        'topics_remaining': topics_remaining,
+        'show_chapter_modal': show_chapter_modal,
+        'show_course_modal': show_course_modal,
     })
 
 
@@ -310,23 +375,40 @@ def mark_topic_viewed(request, topic_id):
     viewed = progress.topics_viewed.count()
     quiz_result = QuizResult.objects.filter(enrollment=enrollment, chapter=topic.chapter).first()
 
-    if viewed >= total_topics and quiz_result and quiz_result.passed() and not progress.is_completed:
-        progress.is_completed = True
-        progress.completed_at = timezone.now()
-        progress.save()
+    # chapter can be automatically completed once every topic is viewed and the
+    # quiz (if any) has been passed.  chapters with no questions are treated as
+    # automatically "passed" once the last topic is seen.
+    if viewed >= total_topics and not progress.is_completed:
+        quiz_ok = (not topic.chapter.has_quiz()) or (quiz_result and quiz_result.passed())
+        if quiz_ok:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            progress.save()
 
     # Check if this is an AJAX request
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'status': 'ok', 'viewed': viewed, 'total': total_topics})
     
-    # For form submission, redirect back to chapter with the next topic
+    # For form submission, decide where to send the student next.  We normally
+    # go to the following topic, but if a quiz is configured for the chapter we
+    # require it be taken/passed before advancing further.
     next_topic_index = request.POST.get('next_topic_index')
     print(f"DEBUG: next_topic_index = {next_topic_index}")
-    
+
     if next_topic_index:
+        # if the chapter has a quiz and the student hasn't passed it yet, send
+        # them to the quiz page instead of the next topic
+        quiz_result = QuizResult.objects.filter(enrollment=enrollment, chapter=topic.chapter).first()
+        if topic.chapter.has_quiz() and (not quiz_result or not quiz_result.passed()):
+            messages.warning(request, 'Please complete the chapter quiz before moving on to the next topic.')
+            return redirect('take_quiz', chapter_id=topic.chapter.id)
+
         try:
             next_index = int(next_topic_index) + 1
             redirect_url = f"{reverse('chapter_detail', args=[topic.chapter.id])}?topic={next_index}"
+            # if chapter is now completed, tack on a flag so view may show modal
+            if progress.is_completed:
+                redirect_url += '&completed=1'
             print(f"DEBUG: Redirecting to: {redirect_url}")
             return redirect(redirect_url)
         except (ValueError, TypeError) as e:
@@ -431,9 +513,15 @@ def quiz_result_detail(request, result_id):
             'is_correct': chosen.upper() == q.correct_answer.upper(),
         })
 
+    # determine whether this was the last chapter in the course
+    subject_chapters = list(result.chapter.subject.chapters.filter(is_active=True).order_by('order'))
+    is_last = subject_chapters and subject_chapters[-1].id == result.chapter.id
+    show_course_modal = result.passed() and is_last
+
     return render(request, 'lab/student/quiz_result.html', {
         'result': result,
         'question_results': question_results,
+        'show_course_modal': show_course_modal,
     })
 
 
@@ -738,64 +826,100 @@ def admin_announcements(request):
 
 # ─── Chatbot API ───────────────────────────────────────────────────────────────
 
-@login_required
-@require_POST
+@csrf_exempt
 def chatbot_api(request):
     """
-    API endpoint to handle chatbot messages securely.
-    Proxies requests to Gemini API while keeping the API key safe on the backend.
+    Chatbot API endpoint that proxies to Gemini 2.5 Flash.
+    Keeps API key safe on backend.
     """
     import json
     import requests
     from django.conf import settings
     
+    # Check method
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    # Check authentication
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
     try:
-        data = json.loads(request.body)
-        user_message = data.get('message', '').strip()
+        # Parse JSON body
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            return JsonResponse({'error': f'Invalid JSON: {str(e)}'}, status=400)
         
-        if not user_message:
-            return JsonResponse({'error': 'Message is required'}, status=400)
+        message = data.get('message', '').strip()
         
-        # Call Gemini API
-        headers = {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': settings.GEMINI_API_KEY,
-        }
-        
+        if not message:
+            return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+
         payload = {
             'contents': [
                 {
                     'parts': [
-                        {
-                            'text': user_message
-                        }
+                        {'text': message}
                     ]
                 }
             ]
         }
+
+        # Debug: print API URL and payload
+        print(f"[CHATBOT] Gemini URL: {settings.GEMINI_API_URL}")
+        print(f"[CHATBOT] API Key: {settings.GEMINI_API_KEY[:20]}...")
+        print(f"[CHATBOT] Payload: {json.dumps(payload)}")
+
+        print("[CHATBOT] Sending request to Gemini API...")
+        import time
+        start = time.time()
         
         response = requests.post(
             settings.GEMINI_API_URL,
-            headers=headers,
+            headers={
+                'Content-Type': 'application/json',
+                'X-goog-api-key': settings.GEMINI_API_KEY,
+            },
             json=payload,
-            timeout=30
+            timeout=60,  # Increased from 30 to 60 seconds
         )
         
+        elapsed = time.time() - start
+        print(f"[CHATBOT] Request took {elapsed:.2f}s")
+        print(f"[CHATBOT] Gemini Status: {response.status_code}")
+        print(f"[CHATBOT] Gemini Response: {response.text}")
+
         if response.status_code == 200:
             result = response.json()
-            # Extract the generated text from the response
+            # Extract generated text
             if 'candidates' in result and len(result['candidates']) > 0:
                 candidate = result['candidates'][0]
                 if 'content' in candidate and 'parts' in candidate['content']:
                     text = candidate['content']['parts'][0].get('text', '')
                     return JsonResponse({'response': text})
             return JsonResponse({'error': 'No response generated'}, status=500)
+
         else:
-            return JsonResponse({'error': 'API request failed'}, status=response.status_code)
-            
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    except requests.RequestException as e:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            print(f"[CHATBOT] Error detail: {detail}")
+            return JsonResponse({'error': f'Gemini API error (status {response.status_code})', 'detail': detail}, status=response.status_code)
+
+    except requests.exceptions.Timeout as e:
+        print(f"[CHATBOT] Request timed out after 60s: {str(e)}")
+        return JsonResponse({'error': 'Gemini API request timed out (60s)'}, status=504)
+    except requests.exceptions.ConnectionError as e:
+        print(f"[CHATBOT] Connection error: {str(e)}")
+        return JsonResponse({'error': f'Cannot reach Gemini API: {str(e)}'}, status=503)
+    except requests.exceptions.RequestException as e:
+        print(f"[CHATBOT] Request exception: {str(e)}")
         return JsonResponse({'error': f'Request failed: {str(e)}'}, status=500)
     except Exception as e:
+        print(f"[CHATBOT] Unexpected error: {str(e)}")
         return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
+
+
+# End of views

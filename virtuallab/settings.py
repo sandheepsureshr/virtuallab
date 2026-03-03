@@ -78,5 +78,5 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Gemini API Configuration
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyAwMIq3G-EbUphOwUoYVrbzpJLFv1QAEGI')
-GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyBaRB-TBgIsxm5NZhRI6uG00xxboAvJOfo')
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
